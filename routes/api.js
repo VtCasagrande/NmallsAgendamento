@@ -76,20 +76,27 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
     const isConnected = mongoose.connection.readyState === 1;
     console.log('API: Status da conexão MongoDB:', isConnected ? 'Conectado' : 'Desconectado');
     
+    // Ajustar a data para o fuso horário do Brasil
+    const dataAgendamento = new Date(req.body.dataAgendamento);
+    console.log('API: Data recebida (ISO):', req.body.dataAgendamento);
+    console.log('API: Data convertida (objeto):', dataAgendamento);
+    
     const novaMensagem = new Mensagem({
       nome: req.body.nome,
       telefone: req.body.telefone,
       mensagem: req.body.mensagem,
       responsavel: req.body.responsavel,
-      dataAgendamento: new Date(req.body.dataAgendamento),
+      dataAgendamento: dataAgendamento,
       criadoPor: req.usuario ? req.usuario.id : null
     });
 
     console.log('API: Objeto de mensagem criado:', novaMensagem);
+    console.log('API: Data de agendamento final:', novaMensagem.dataAgendamento);
     
     try {
       const mensagemSalva = await novaMensagem.save();
       console.log('API: Mensagem salva com sucesso no MongoDB:', mensagemSalva._id);
+      console.log('API: Data salva no MongoDB:', mensagemSalva.dataAgendamento);
       
       // Também salvar localmente para redundância
       const fs = require('fs');
@@ -131,7 +138,7 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
         telefone: req.body.telefone,
         mensagem: req.body.mensagem,
         responsavel: req.body.responsavel,
-        dataAgendamento: new Date(req.body.dataAgendamento),
+        dataAgendamento: dataAgendamento,
         dataCriacao: new Date(),
         webhookEnviado: false,
         criadoPor: req.usuario ? req.usuario.id : null
@@ -185,7 +192,7 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
         telefone: req.body.telefone,
         mensagem: req.body.mensagem,
         responsavel: req.body.responsavel,
-        dataAgendamento: new Date(req.body.dataAgendamento),
+        dataAgendamento: dataAgendamento,
         dataCriacao: new Date(),
         webhookEnviado: false,
         criadoPor: req.usuario ? req.usuario.id : null

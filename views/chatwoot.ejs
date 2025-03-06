@@ -186,8 +186,6 @@
       function ajustarFusoHorario(data) {
         // Cria uma nova data com o fuso horário correto
         const dataLocal = new Date(data);
-        // Adiciona 3 horas para compensar a diferença entre UTC e GMT-3
-        // Isso é necessário porque o input datetime-local usa o fuso horário local do navegador
         return dataLocal;
       }
       
@@ -292,13 +290,30 @@
       $('#agendamentoForm').on('submit', function(e) {
         e.preventDefault();
         
+        // Obter a data do input e ajustá-la para o fuso horário correto
+        const dataInput = $('#dataAgendamento').val();
+        const dataObj = new Date(dataInput);
+        
+        // Garantir que a data seja interpretada como horário local (Brasil)
+        // e não como UTC
+        const dataAjustada = new Date(
+          dataObj.getFullYear(),
+          dataObj.getMonth(),
+          dataObj.getDate(),
+          dataObj.getHours(),
+          dataObj.getMinutes()
+        );
+        
         const formData = {
           nome: $('#nome').val(),
           telefone: $('#telefone').val(),
           mensagem: $('#mensagem').val(),
           responsavel: $('#responsavel').val(),
-          dataAgendamento: $('#dataAgendamento').val()
+          dataAgendamento: dataAjustada.toISOString() // Usar ISO para enviar ao servidor
         };
+        
+        console.log('Data original do input:', dataInput);
+        console.log('Data ajustada para envio:', formData.dataAgendamento);
         
         // Validar telefone
         const telefoneRegex = /^\(\d{2}\)\s\d{4,5}-\d{4}$/;
@@ -309,13 +324,13 @@
         }
         
         // Validar data de agendamento
-        const dataAgendamento = new Date(formData.dataAgendamento);
-        const agora = new Date();
+        const dataAgendamento = new Date(dataInput);
+        const agoraValidacao = new Date();
         
         // Adicionar 10 minutos à hora atual para dar uma margem
-        agora.setMinutes(agora.getMinutes() + 10);
+        agoraValidacao.setMinutes(agoraValidacao.getMinutes() + 10);
         
-        if (dataAgendamento <= agora) {
+        if (dataAgendamento <= agoraValidacao) {
           $('#mensagemErro').removeClass('d-none');
           $('#erroTexto').text('A data de agendamento deve ser pelo menos 10 minutos no futuro');
           return;

@@ -137,17 +137,23 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
     const isConnected = mongoose.connection.readyState === 1;
     console.log('Formulário: Status da conexão MongoDB:', isConnected ? 'Conectado' : 'Desconectado');
     
+    // Ajustar a data para o fuso horário do Brasil
+    const dataAgendamento = new Date(req.body.dataAgendamento);
+    console.log('Formulário: Data recebida (string):', req.body.dataAgendamento);
+    console.log('Formulário: Data convertida (objeto):', dataAgendamento);
+    
     // Criar objeto de mensagem com o usuário atual como criador
     const novaMensagem = new Mensagem({
       nome: req.body.nome,
       telefone: req.body.telefone,
       mensagem: req.body.mensagem,
       responsavel: req.body.responsavel,
-      dataAgendamento: new Date(req.body.dataAgendamento),
+      dataAgendamento: dataAgendamento,
       criadoPor: req.usuario ? req.usuario.id : null
     });
 
     console.log('Formulário: Objeto de mensagem criado:', novaMensagem);
+    console.log('Formulário: Data de agendamento final:', novaMensagem.dataAgendamento);
 
     let mensagemSalvaNoBanco = null;
     
@@ -156,6 +162,7 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
       try {
         mensagemSalvaNoBanco = await novaMensagem.save();
         console.log('Formulário: Mensagem salva com sucesso no MongoDB:', mensagemSalvaNoBanco._id);
+        console.log('Formulário: Data salva no MongoDB:', mensagemSalvaNoBanco.dataAgendamento);
       } catch (saveError) {
         console.error('Formulário: Erro ao salvar no MongoDB:', saveError);
       }
@@ -172,7 +179,7 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
       telefone: req.body.telefone,
       mensagem: req.body.mensagem,
       responsavel: req.body.responsavel,
-      dataAgendamento: new Date(req.body.dataAgendamento),
+      dataAgendamento: dataAgendamento,
       dataCriacao: new Date(),
       webhookEnviado: false,
       criadoPor: req.usuario ? req.usuario.id : null
@@ -181,6 +188,7 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
     mensagens.push(mensagemLocal);
     salvarMensagensLocais(mensagens);
     console.log('Formulário: Mensagem salva localmente com ID:', mensagemLocal._id);
+    console.log('Formulário: Data salva localmente:', mensagemLocal.dataAgendamento);
     
     // Enviar webhook manualmente se não estiver conectado ao banco
     if (!isConnected) {
