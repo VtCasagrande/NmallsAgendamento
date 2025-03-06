@@ -77,23 +77,27 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
     console.log('API: Status da conexão MongoDB:', isConnected ? 'Conectado' : 'Desconectado');
     
     // Usar a data exatamente como foi enviada pelo formulário
-    console.log('API: Data recebida do formulário:', req.body.dataAgendamento);
+    console.log('API: Data recebida do formulário (sem modificação):', req.body.dataAgendamento);
     
-    const novaMensagem = new Mensagem({
+    // Criar objeto de mensagem
+    const novaMensagem = {
       nome: req.body.nome,
       telefone: req.body.telefone,
       mensagem: req.body.mensagem,
       responsavel: req.body.responsavel,
-      dataAgendamento: req.body.dataAgendamento,
+      dataAgendamento: req.body.dataAgendamento, // Manter como string
       criadoPor: req.usuario ? req.usuario.id : null
-    });
+    };
 
     console.log('API: Objeto de mensagem criado:', novaMensagem);
     
     try {
-      const mensagemSalva = await novaMensagem.save();
+      // Criar e salvar usando o modelo Mongoose
+      const mensagemModel = new Mensagem(novaMensagem);
+      const mensagemSalva = await mensagemModel.save();
+      
       console.log('API: Mensagem salva com sucesso no MongoDB:', mensagemSalva._id);
-      console.log('API: Data salva no MongoDB:', mensagemSalva.dataAgendamento);
+      console.log('API: Data salva no MongoDB (sem modificação):', mensagemSalva.dataAgendamento);
       
       // Também salvar localmente para redundância
       const fs = require('fs');
@@ -135,7 +139,7 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
         telefone: req.body.telefone,
         mensagem: req.body.mensagem,
         responsavel: req.body.responsavel,
-        dataAgendamento: req.body.dataAgendamento,
+        dataAgendamento: req.body.dataAgendamento, // Manter como string
         dataCriacao: new Date(),
         webhookEnviado: false,
         criadoPor: req.usuario ? req.usuario.id : null
@@ -189,7 +193,7 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
         telefone: req.body.telefone,
         mensagem: req.body.mensagem,
         responsavel: req.body.responsavel,
-        dataAgendamento: req.body.dataAgendamento,
+        dataAgendamento: req.body.dataAgendamento, // Manter como string
         dataCriacao: new Date(),
         webhookEnviado: false,
         criadoPor: req.usuario ? req.usuario.id : null

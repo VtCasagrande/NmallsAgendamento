@@ -50,7 +50,11 @@
               </td>
               <td><%= mensagem.responsavel || 'Não informado' %></td>
               <td>
-                <%= moment(mensagem.dataAgendamento).tz('America/Sao_Paulo').format('DD/MM/YYYY HH:mm') %>
+                <% if (typeof mensagem.dataAgendamento === 'string' && mensagem.dataAgendamento.includes('T')) { %>
+                  <%= mensagem.dataAgendamento.replace('T', ' ').substring(0, 16) %>
+                <% } else { %>
+                  <%= moment(mensagem.dataAgendamento).tz('America/Sao_Paulo').format('DD/MM/YYYY HH:mm') %>
+                <% } %>
               </td>
               <td>
                 <form action="/mensagens/<%= mensagem._id %>?_method=DELETE" method="POST" class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir esta mensagem?')">

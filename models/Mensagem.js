@@ -54,7 +54,7 @@ const mensagemSchema = new mongoose.Schema({
     trim: true
   },
   dataAgendamento: {
-    type: Date,
+    type: String,
     required: [true, 'Data de agendamento é obrigatória']
   },
   dataCriacao: {
@@ -73,7 +73,9 @@ const mensagemSchema = new mongoose.Schema({
 
 // Método para verificar se a data de agendamento é válida (no futuro)
 mensagemSchema.methods.isDataAgendamentoValida = function() {
-  return this.dataAgendamento > new Date();
+  // Converter a string para Date apenas para comparação
+  const dataAgendamento = new Date(this.dataAgendamento);
+  return dataAgendamento > new Date();
 };
 
 // Função para enviar webhook

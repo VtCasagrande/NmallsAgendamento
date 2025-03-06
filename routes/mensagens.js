@@ -138,17 +138,17 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
     console.log('Formulário: Status da conexão MongoDB:', isConnected ? 'Conectado' : 'Desconectado');
     
     // Usar a data exatamente como foi enviada pelo formulário
-    console.log('Formulário: Data recebida do formulário:', req.body.dataAgendamento);
+    console.log('Formulário: Data recebida do formulário (sem modificação):', req.body.dataAgendamento);
     
-    // Criar objeto de mensagem com o usuário atual como criador
-    const novaMensagem = new Mensagem({
+    // Criar objeto de mensagem
+    const novaMensagem = {
       nome: req.body.nome,
       telefone: req.body.telefone,
       mensagem: req.body.mensagem,
       responsavel: req.body.responsavel,
-      dataAgendamento: req.body.dataAgendamento,
+      dataAgendamento: req.body.dataAgendamento, // Manter como string
       criadoPor: req.usuario ? req.usuario.id : null
-    });
+    };
 
     console.log('Formulário: Objeto de mensagem criado:', novaMensagem);
 
@@ -157,9 +157,12 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
     // Sempre tentar salvar no banco de dados primeiro
     if (isConnected) {
       try {
-        mensagemSalvaNoBanco = await novaMensagem.save();
+        // Criar e salvar usando o modelo Mongoose
+        const mensagemModel = new Mensagem(novaMensagem);
+        mensagemSalvaNoBanco = await mensagemModel.save();
+        
         console.log('Formulário: Mensagem salva com sucesso no MongoDB:', mensagemSalvaNoBanco._id);
-        console.log('Formulário: Data salva no MongoDB:', mensagemSalvaNoBanco.dataAgendamento);
+        console.log('Formulário: Data salva no MongoDB (sem modificação):', mensagemSalvaNoBanco.dataAgendamento);
       } catch (saveError) {
         console.error('Formulário: Erro ao salvar no MongoDB:', saveError);
       }
@@ -176,7 +179,7 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
       telefone: req.body.telefone,
       mensagem: req.body.mensagem,
       responsavel: req.body.responsavel,
-      dataAgendamento: req.body.dataAgendamento,
+      dataAgendamento: req.body.dataAgendamento, // Manter como string
       dataCriacao: new Date(),
       webhookEnviado: false,
       criadoPor: req.usuario ? req.usuario.id : null
@@ -185,7 +188,7 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
     mensagens.push(mensagemLocal);
     salvarMensagensLocais(mensagens);
     console.log('Formulário: Mensagem salva localmente com ID:', mensagemLocal._id);
-    console.log('Formulário: Data salva localmente:', mensagemLocal.dataAgendamento);
+    console.log('Formulário: Data salva localmente (sem modificação):', mensagemLocal.dataAgendamento);
     
     // Enviar webhook manualmente se não estiver conectado ao banco
     if (!isConnected) {
