@@ -1,0 +1,156 @@
+<%- include('../layouts/main', { title: 'Logs do Sistema' }) %>
+
+<div class="container mb-5">
+  <div class="row mb-4">
+    <div class="col-md-8">
+      <h1><i class="fas fa-history me-2"></i>Logs do Sistema</h1>
+      <p class="text-muted">Total de registros: <%= totalLogs %></p>
+    </div>
+  </div>
+
+  <% if (logs.length === 0) { %>
+    <div class="alert alert-info">
+      <i class="fas fa-info-circle me-2"></i> Não há logs registrados.
+    </div>
+  <% } else { %>
+    <div class="table-responsive">
+      <table class="table table-striped table-hover">
+        <thead class="table-dark">
+          <tr>
+            <th>Data</th>
+            <th>Usuário</th>
+            <th>Ação</th>
+            <th>Detalhes</th>
+            <th>IP</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% logs.forEach(log => { %>
+            <tr>
+              <td><%= moment(log.data).format('DD/MM/YYYY HH:mm:ss') %></td>
+              <td>
+                <% if (log.usuario) { %>
+                  <%= log.usuario.nome %> (<%= log.usuario.email %>)
+                <% } else { %>
+                  Usuário não encontrado
+                <% } %>
+              </td>
+              <td>
+                <% 
+                  let badgeClass = 'bg-secondary';
+                  let acaoFormatada = log.acao;
+                  
+                  switch(log.acao) {
+                    case 'login':
+                      badgeClass = 'bg-success';
+                      acaoFormatada = 'Login';
+                      break;
+                    case 'logout':
+                      badgeClass = 'bg-warning';
+                      acaoFormatada = 'Logout';
+                      break;
+                    case 'criar_mensagem':
+                      badgeClass = 'bg-primary';
+                      acaoFormatada = 'Criar Mensagem';
+                      break;
+                    case 'excluir_mensagem':
+                      badgeClass = 'bg-danger';
+                      acaoFormatada = 'Excluir Mensagem';
+                      break;
+                    case 'alterar_configuracao':
+                      badgeClass = 'bg-info';
+                      acaoFormatada = 'Alterar Configuração';
+                      break;
+                    case 'criar_usuario':
+                      badgeClass = 'bg-primary';
+                      acaoFormatada = 'Criar Usuário';
+                      break;
+                    case 'alterar_usuario':
+                      badgeClass = 'bg-info';
+                      acaoFormatada = 'Alterar Usuário';
+                      break;
+                    case 'excluir_usuario':
+                      badgeClass = 'bg-danger';
+                      acaoFormatada = 'Excluir Usuário';
+                      break;
+                  }
+                %>
+                <span class="badge <%= badgeClass %>"><%= acaoFormatada %></span>
+              </td>
+              <td>
+                <% if (log.detalhes) { %>
+                  <button class="btn btn-sm btn-outline-secondary view-details" data-details="<%= JSON.stringify(log.detalhes) %>">
+                    <i class="fas fa-eye"></i> Ver Detalhes
+                  </button>
+                <% } else { %>
+                  -
+                <% } %>
+              </td>
+              <td><%= log.ip || '-' %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginação -->
+    <% if (totalPages > 1) { %>
+      <nav aria-label="Navegação de páginas">
+        <ul class="pagination justify-content-center">
+          <li class="page-item <%= currentPage === 1 ? 'disabled' : '' %>">
+            <a class="page-link" href="/admin/logs?page=<%= currentPage - 1 %>" aria-label="Anterior">
+              <span aria-hidden="true">&laquo;</span>
+            </a>
+          </li>
+          
+          <% for (let i = 1; i <= totalPages; i++) { %>
+            <li class="page-item <%= currentPage === i ? 'active' : '' %>">
+              <a class="page-link" href="/admin/logs?page=<%= i %>"><%= i %></a>
+            </li>
+          <% } %>
+          
+          <li class="page-item <%= currentPage === totalPages ? 'disabled' : '' %>">
+            <a class="page-link" href="/admin/logs?page=<%= currentPage + 1 %>" aria-label="Próximo">
+              <span aria-hidden="true">&raquo;</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    <% } %>
+  <% } %>
+</div>
+
+<!-- Modal de detalhes -->
+<div class="modal fade" id="detailsModal" tabindex="-1" aria-labelledby="detailsModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="detailsModalLabel">Detalhes do Log</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <pre id="detailsContent" class="bg-light p-3 rounded"></pre>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Referências aos elementos do modal
+    const detailsModal = new bootstrap.Modal(document.getElementById('detailsModal'));
+    const detailsContent = document.getElementById('detailsContent');
+
+    // Adicionar evento de clique aos botões de visualização de detalhes
+    document.querySelectorAll('.view-details').forEach(button => {
+      button.addEventListener('click', function() {
+        const details = JSON.parse(this.getAttribute('data-details'));
+        detailsContent.textContent = JSON.stringify(details, null, 2);
+        detailsModal.show();
+      });
+    });
+  });
+</script> 

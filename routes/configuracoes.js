@@ -3,6 +3,8 @@ const router = express.Router();
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
+const { verificarAdmin } = require('./auth');
+const { registrarLog } = require('../utils/logger');
 
 // Caminho para o arquivo de configurações local
 const configFilePath = path.join(__dirname, '..', 'config.json');
@@ -36,6 +38,9 @@ function salvarConfiguracoes(config) {
   }
 }
 
+// Middleware para verificar se o usuário é administrador
+router.use(verificarAdmin);
+
 // Rota para exibir a página de configurações
 router.get('/configuracoes', async (req, res) => {
   try {
@@ -62,28 +67,40 @@ router.get('/configuracoes', async (req, res) => {
 // Rota para salvar configurações
 router.post('/configuracoes', async (req, res) => {
   try {
-    const { webhookUrl } = req.body;
-    const webhookAtivo = req.body.webhookAtivo === 'on';
+    const { webhookUrl, webhookAtivo } = req.body;
     
-    // Salvar configurações no arquivo local
-    const config = {
-      webhookUrl,
-      webhookAtivo
+    // Validar a URL do webhook
+    if (webhookUrl && !webhookUrl.startsWith('http')) {
+      return res.redirect('/configuracoes?mensagem=URL do webhook inválida. Deve começar com http:// ou https://&tipo=danger');
+    }
+    
+    // Obter configurações atuais
+    const configAtual = lerConfiguracoes();
+    
+    // Atualizar configurações
+    const novasConfigs = {
+      ...configAtual,
+      webhookUrl: webhookUrl || '',
+      webhookAtivo: webhookAtivo === 'on'
     };
     
-    const salvou = salvarConfiguracoes(config);
+    // Salvar configurações
+    const salvou = salvarConfiguracoes(novasConfigs);
     
-    // Atualizar a variável de ambiente para uso imediato
-    process.env.WEBHOOK_URL = webhookUrl;
-
     if (salvou) {
-      res.redirect('/configuracoes?mensagem=Configurações salvas com sucesso&tipo=success');
+      // Registrar log de alteração de configuração
+      await registrarLog(req, 'alterar_configuracao', {
+        webhookUrl: novasConfigs.webhookUrl,
+        webhookAtivo: novasConfigs.webhookAtivo
+      });
+      
+      return res.redirect('/configuracoes?mensagem=Configurações salvas com sucesso&tipo=success');
     } else {
-      res.redirect('/configuracoes?mensagem=Erro ao salvar configurações&tipo=danger');
+      return res.redirect('/configuracoes?mensagem=Erro ao salvar configurações&tipo=danger');
     }
   } catch (err) {
-    console.error(err);
-    res.redirect('/configuracoes?mensagem=Erro ao salvar configurações&tipo=danger');
+    console.error('Erro ao salvar configurações:', err);
+    return res.redirect('/configuracoes?mensagem=Erro ao salvar configurações: ' + err.message + '&tipo=danger');
   }
 });
 

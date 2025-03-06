@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Usuario = require('../models/Usuario');
 const jwt = require('jsonwebtoken');
+const { registrarLog } = require('../utils/logger');
 
 // Middleware para verificar se o usuário está autenticado
 const autenticar = (req, res, next) => {
@@ -23,13 +24,24 @@ const autenticar = (req, res, next) => {
   }
 };
 
+// Middleware para verificar se o usuário é administrador
+const verificarAdmin = (req, res, next) => {
+  if (!req.usuario || req.usuario.role !== 'admin') {
+    return res.status(403).render('error', { 
+      title: 'Acesso Negado',
+      message: 'Você não tem permissão para acessar esta página.'
+    });
+  }
+  next();
+};
+
 // Rota para a página de login
 router.get('/login', (req, res) => {
   res.render('auth/login', { title: 'Login', error: null });
 });
 
 // Rota para a página de registro
-router.get('/registro', (req, res) => {
+router.get('/registro', autenticar, verificarAdmin, (req, res) => {
   res.render('auth/registro', { title: 'Registro', error: null });
 });
 
@@ -64,7 +76,12 @@ router.post('/login', async (req, res) => {
     
     // Criar token JWT
     const token = jwt.sign(
-      { id: usuario._id, nome: usuario.nome, email: usuario.email },
+      { 
+        id: usuario._id, 
+        nome: usuario.nome, 
+        email: usuario.email,
+        role: usuario.role
+      },
       process.env.JWT_SECRET || 'segredo_temporario',
       { expiresIn: '1d' }
     );
@@ -74,6 +91,10 @@ router.post('/login', async (req, res) => {
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000 // 1 dia
     });
+    
+    // Registrar log de login
+    req.usuario = { id: usuario._id };
+    await registrarLog(req, 'login');
     
     // Redirecionar para a página principal
     res.redirect('/mensagens');
@@ -88,9 +109,9 @@ router.post('/login', async (req, res) => {
 });
 
 // Rota para processar o registro
-router.post('/registro', async (req, res) => {
+router.post('/registro', autenticar, verificarAdmin, async (req, res) => {
   try {
-    const { nome, email, senha, codigoAutenticador } = req.body;
+    const { nome, email, senha, codigoAutenticador, role } = req.body;
     
     // Verificar o código de autenticador
     if (codigoAutenticador !== '6328') {
@@ -113,26 +134,23 @@ router.post('/registro', async (req, res) => {
     const novoUsuario = new Usuario({
       nome,
       email,
-      senha
+      senha,
+      role: role || 'operador',
+      criadoPor: req.usuario.id
     });
     
     await novoUsuario.save();
     
-    // Criar token JWT
-    const token = jwt.sign(
-      { id: novoUsuario._id, nome: novoUsuario.nome, email: novoUsuario.email },
-      process.env.JWT_SECRET || 'segredo_temporario',
-      { expiresIn: '1d' }
-    );
-    
-    // Salvar token em cookie
-    res.cookie('token', token, {
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000 // 1 dia
+    // Registrar log de criação de usuário
+    await registrarLog(req, 'criar_usuario', { 
+      usuarioCriado: novoUsuario._id,
+      nome: novoUsuario.nome,
+      email: novoUsuario.email,
+      role: novoUsuario.role
     });
     
-    // Redirecionar para a página principal
-    res.redirect('/mensagens');
+    // Redirecionar para a página de usuários
+    res.redirect('/admin/usuarios');
     
   } catch (error) {
     console.error('Erro no registro:', error);
@@ -144,9 +162,49 @@ router.post('/registro', async (req, res) => {
 });
 
 // Rota para logout
-router.get('/logout', (req, res) => {
+router.get('/logout', async (req, res) => {
+  // Registrar log de logout
+  if (req.usuario) {
+    await registrarLog(req, 'logout');
+  }
+  
   res.clearCookie('token');
   res.redirect('/login');
 });
 
-module.exports = { router, autenticar }; 
+// Rota para criar o usuário administrador inicial
+router.get('/setup-admin', async (req, res) => {
+  try {
+    // Verificar se já existe algum usuário
+    const usuariosCount = await Usuario.countDocuments();
+    
+    if (usuariosCount > 0) {
+      return res.status(403).json({ 
+        error: 'Configuração inicial já foi realizada. Não é possível criar outro administrador por esta rota.' 
+      });
+    }
+    
+    // Criar o usuário administrador
+    const adminUser = new Usuario({
+      nome: 'Administrador',
+      email: 'vitor@nmalls.com.br',
+      senha: 'admin123',
+      role: 'admin'
+    });
+    
+    await adminUser.save();
+    
+    res.json({ 
+      success: true, 
+      message: 'Usuário administrador criado com sucesso. Você pode fazer login agora.' 
+    });
+    
+  } catch (error) {
+    console.error('Erro ao criar usuário administrador:', error);
+    res.status(500).json({ 
+      error: 'Ocorreu um erro ao criar o usuário administrador.' 
+    });
+  }
+});
+
+module.exports = { router, autenticar, verificarAdmin }; 

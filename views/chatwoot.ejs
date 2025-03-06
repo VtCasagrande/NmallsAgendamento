@@ -83,7 +83,7 @@
     <div class="card">
       <div class="card-header">
         <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Agendar Mensagem</h5>
-        <a href="/mensagens" target="_blank" class="nav-link">
+        <a href="/mensagens" class="nav-link">
           <i class="fas fa-external-link-alt me-1"></i>Menu Principal
         </a>
       </div>
@@ -220,13 +220,22 @@
               // Preencher automaticamente o formulário
               if (contact.name) $('#nome').val(contact.name);
               if (contact.phone_number) {
-                const phone = contact.phone_number.replace(/\D/g, '');
+                // Processar o número de telefone corretamente
+                let phone = contact.phone_number.replace(/\D/g, '');
+                
+                // Remover o código do país se já estiver presente
+                if (phone.startsWith('55') && phone.length > 10) {
+                  phone = phone.substring(2);
+                }
+                
+                // Formatar o número no padrão brasileiro
                 if (phone.length >= 10) {
                   const formattedPhone = phone.length === 11 
                     ? `(${phone.substring(0, 2)}) ${phone.substring(2, 7)}-${phone.substring(7)}`
                     : `(${phone.substring(0, 2)}) ${phone.substring(2, 6)}-${phone.substring(6)}`;
                   $('#telefone').val(formattedPhone);
                 } else {
+                  // Se não conseguir formatar, usar o número original
                   $('#telefone').val(contact.phone_number);
                 }
               }

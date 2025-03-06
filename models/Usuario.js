@@ -25,18 +25,32 @@ const usuarioSchema = new mongoose.Schema({
     required: [true, 'Senha é obrigatória'],
     minlength: [6, 'Senha deve ter pelo menos 6 caracteres']
   },
+  role: {
+    type: String,
+    enum: ['admin', 'operador'],
+    default: 'operador'
+  },
   dataCriacao: {
     type: Date,
     default: Date.now
   },
   ultimoLogin: {
     type: Date
+  },
+  criadoPor: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Usuario'
   }
 });
 
 // Método para verificar senha
 usuarioSchema.methods.verificarSenha = async function(senhaInformada) {
   return await bcrypt.compare(senhaInformada, this.senha);
+};
+
+// Método para verificar se é admin
+usuarioSchema.methods.isAdmin = function() {
+  return this.role === 'admin';
 };
 
 // Middleware para criptografar a senha antes de salvar

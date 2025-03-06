@@ -1,0 +1,79 @@
+<%- include('../layouts/main', { title: 'Editar Usuário' }) %>
+
+<div class="container mb-5">
+  <div class="row">
+    <div class="col-md-8 mx-auto">
+      <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+          <h2 class="h4 mb-0"><i class="fas fa-user-edit me-2"></i>Editar Usuário</h2>
+        </div>
+        <div class="card-body">
+          <% if (error) { %>
+            <div class="alert alert-danger">
+              <i class="fas fa-exclamation-circle me-2"></i><%= error %>
+            </div>
+          <% } %>
+
+          <form action="/admin/usuarios/<%= usuario._id %>" method="POST" novalidate>
+            <div class="mb-3">
+              <label for="nome" class="form-label">Nome</label>
+              <input 
+                type="text" 
+                class="form-control" 
+                id="nome" 
+                name="nome" 
+                value="<%= usuario.nome %>" 
+                required
+              >
+            </div>
+
+            <div class="mb-3">
+              <label for="email" class="form-label">Email</label>
+              <input 
+                type="email" 
+                class="form-control" 
+                id="email" 
+                name="email" 
+                value="<%= usuario.email %>" 
+                required
+              >
+            </div>
+
+            <div class="mb-3">
+              <label for="role" class="form-label">Função</label>
+              <select class="form-select" id="role" name="role" required>
+                <option value="operador" <%= usuario.role === 'operador' ? 'selected' : '' %>>Operador</option>
+                <option value="admin" <%= usuario.role === 'admin' ? 'selected' : '' %>>Administrador</option>
+              </select>
+              <div class="form-text">
+                <strong>Operador:</strong> Pode agendar mensagens<br>
+                <strong>Administrador:</strong> Pode agendar mensagens, gerenciar usuários e configurações
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label for="senha" class="form-label">Nova Senha (deixe em branco para manter a atual)</label>
+              <input 
+                type="password" 
+                class="form-control" 
+                id="senha" 
+                name="senha" 
+                minlength="6"
+              >
+              <div class="form-text">A senha deve ter pelo menos 6 caracteres</div>
+            </div>
+
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+              <a href="/admin/usuarios" class="btn btn-secondary me-md-2">
+                <i class="fas fa-times me-1"></i> Cancelar
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-1"></i> Salvar
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div> 
