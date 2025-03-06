@@ -148,7 +148,7 @@ app.use('/', autenticar, mensagensRoutes);
 app.use('/api', apiRoutes);
 app.use('/', autenticar, configuracoesRoutes);
 app.use('/admin', adminRoutes);
-app.use('/', chatwootRoutes); // Chatwoot não é protegido para permitir integração
+app.use('/', autenticar, chatwootRoutes); // Aplicando autenticação para o Chatwoot
 
 // Rota para página inicial (redirecionamento)
 app.get('/', (req, res) => {
