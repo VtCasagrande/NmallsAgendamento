@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agendamento de Mensagens | Chatwoot</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Custom CSS -->
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      padding: 0;
+      margin: 0;
+      background-color: #f8f9fa;
+    }
+    .container-fluid {
+      padding: 1rem;
+    }
+    .card {
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      margin-bottom: 1rem;
+    }
+    .card-header {
+      background-color: #1f93ff;
+      color: white;
+      border-radius: 8px 8px 0 0 !important;
+      padding: 0.75rem 1rem;
+    }
+    .form-control:focus {
+      border-color: #1f93ff;
+      box-shadow: 0 0 0 0.25rem rgba(31, 147, 255, 0.25);
+    }
+    .btn-primary {
+      background-color: #1f93ff;
+      border-color: #1f93ff;
+    }
+    .btn-primary:hover {
+      background-color: #0d86ff;
+      border-color: #0d86ff;
+    }
+    .contact-info {
+      background-color: #e9f5ff;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    .contact-info h5 {
+      color: #1f93ff;
+      margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <div id="contactInfo" class="contact-info d-none">
+      <h5><i class="fas fa-user-circle me-2"></i>Informações do Contato</h5>
+      <div class="row">
+        <div class="col-md-6">
+          <p class="mb-1"><strong>Nome:</strong> <span id="contactName">-</span></p>
+          <p class="mb-1"><strong>Telefone:</strong> <span id="contactPhone">-</span></p>
+        </div>
+        <div class="col-md-6">
+          <p class="mb-1"><strong>Email:</strong> <span id="contactEmail">-</span></p>
+          <p class="mb-1"><strong>ID:</strong> <span id="contactId">-</span></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Agendar Mensagem</h5>
+      </div>
+      <div class="card-body">
+        <form id="agendamentoForm">
+          <div class="mb-3">
+            <label for="nome" class="form-label">Nome</label>
+            <input 
+              type="text" 
+              class="form-control" 
+              id="nome" 
+              name="nome" 
+              required
+            >
+          </div>
+
+          <div class="mb-3">
+            <label for="telefone" class="form-label">Telefone</label>
+            <input 
+              type="text" 
+              class="form-control telefone" 
+              id="telefone" 
+              name="telefone" 
+              placeholder="(99) 99999-9999"
+              required
+            >
+            <div class="form-text">
+              Formato: (99) 99999-9999
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="mensagem" class="form-label">Mensagem</label>
+            <textarea 
+              class="form-control" 
+              id="mensagem" 
+              name="mensagem" 
+              rows="3" 
+              maxlength="500" 
+              required
+            ></textarea>
+            <div class="form-text">
+              <span id="contador">0</span>/500 caracteres
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="dataAgendamento" class="form-label">Data e Hora de Agendamento</label>
+            <input 
+              type="datetime-local" 
+              class="form-control" 
+              id="dataAgendamento" 
+              name="dataAgendamento" 
+              required
+            >
+          </div>
+
+          <div class="d-grid">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save me-1"></i> Agendar Mensagem
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="mensagemSucesso" class="alert alert-success d-none">
+      <i class="fas fa-check-circle me-2"></i> Mensagem agendada com sucesso!
+    </div>
+
+    <div id="mensagemErro" class="alert alert-danger d-none">
+      <i class="fas fa-exclamation-circle me-2"></i> <span id="erroTexto"></span>
+    </div>
+  </div>
+
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <!-- jQuery Mask Plugin -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+  <!-- Bootstrap JS Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script>
+    $(document).ready(function() {
+      // Definir data mínima como agora
+      const agora = new Date();
+      const dataFormatada = agora.toISOString().slice(0, 16);
+      $('#dataAgendamento').attr('min', dataFormatada);
+      $('#dataAgendamento').val(dataFormatada);
+
+      // Máscara para o campo de telefone
+      $('.telefone').mask('(00) 00000-0000', {
+        placeholder: '(99) 99999-9999'
+      });
+
+      // Contador de caracteres para o campo de mensagem
+      const mensagemTextarea = $('#mensagem');
+      const contador = $('#contador');
+
+      mensagemTextarea.on('input', function() {
+        contador.text($(this).val().length);
+      });
+
+      // Listener para receber dados do Chatwoot
+      window.addEventListener("message", function(event) {
+        try {
+          const eventData = JSON.parse(event.data);
+          
+          if (eventData.event === "appContext") {
+            const { conversation, contact, currentAgent } = eventData.data;
+            
+            // Preencher informações do contato
+            if (contact) {
+              $('#contactInfo').removeClass('d-none');
+              $('#contactName').text(contact.name || '-');
+              $('#contactPhone').text(contact.phone_number || '-');
+              $('#contactEmail').text(contact.email || '-');
+              $('#contactId').text(contact.id || '-');
+              
+              // Preencher automaticamente o formulário
+              if (contact.name) $('#nome').val(contact.name);
+              if (contact.phone_number) {
+                const phone = contact.phone_number.replace(/\D/g, '');
+                if (phone.length >= 10) {
+                  const formattedPhone = phone.length === 11 
+                    ? `(${phone.substring(0, 2)}) ${phone.substring(2, 7)}-${phone.substring(7)}`
+                    : `(${phone.substring(0, 2)}) ${phone.substring(2, 6)}-${phone.substring(6)}`;
+                  $('#telefone').val(formattedPhone);
+                } else {
+                  $('#telefone').val(contact.phone_number);
+                }
+              }
+            }
+            
+            // Preencher mensagem com informações da conversa
+            if (conversation && conversation.messages && conversation.messages.length > 0) {
+              // Opcionalmente, você pode preencher a mensagem com o último conteúdo da conversa
+              // $('#mensagem').val(`Referente à sua mensagem: "${conversation.messages[0].content}"`);
+            }
+          }
+        } catch (error) {
+          console.error("Erro ao processar mensagem do Chatwoot:", error);
+        }
+      });
+
+      // Solicitar dados do Chatwoot ao carregar a página
+      setTimeout(() => {
+        try {
+          window.parent.postMessage('chatwoot-dashboard-app:fetch-info', '*');
+        } catch (error) {
+          console.error("Erro ao solicitar dados do Chatwoot:", error);
+        }
+      }, 1000);
+
+      // Envio do formulário
+      $('#agendamentoForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = {
+          nome: $('#nome').val(),
+          telefone: $('#telefone').val(),
+          mensagem: $('#mensagem').val(),
+          dataAgendamento: $('#dataAgendamento').val()
+        };
+        
+        // Validar telefone
+        const telefoneRegex = /^\(\d{2}\)\s\d{4,5}-\d{4}$/;
+        if (!telefoneRegex.test(formData.telefone)) {
+          $('#mensagemErro').removeClass('d-none');
+          $('#erroTexto').text('Telefone inválido. Use o formato (99) 99999-9999');
+          return;
+        }
+        
+        // Validar data de agendamento
+        const dataAgendamento = new Date(formData.dataAgendamento);
+        const agora = new Date();
+        if (dataAgendamento <= agora) {
+          $('#mensagemErro').removeClass('d-none');
+          $('#erroTexto').text('A data de agendamento deve ser no futuro');
+          return;
+        }
+        
+        // Enviar para a API
+        $.ajax({
+          url: '/api/mensagens',
+          type: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify(formData),
+          success: function(response) {
+            $('#mensagemSucesso').removeClass('d-none');
+            $('#mensagemErro').addClass('d-none');
+            $('#agendamentoForm')[0].reset();
+            
+            // Definir data mínima novamente
+            const agora = new Date();
+            const dataFormatada = agora.toISOString().slice(0, 16);
+            $('#dataAgendamento').val(dataFormatada);
+            
+            // Esconder mensagem de sucesso após 3 segundos
+            setTimeout(() => {
+              $('#mensagemSucesso').addClass('d-none');
+            }, 3000);
+          },
+          error: function(xhr) {
+            $('#mensagemErro').removeClass('d-none');
+            $('#mensagemSucesso').addClass('d-none');
+            
+            if (xhr.responseJSON && xhr.responseJSON.errors) {
+              const erros = xhr.responseJSON.errors.map(e => e.msg).join(', ');
+              $('#erroTexto').text(erros);
+            } else if (xhr.responseJSON && xhr.responseJSON.error) {
+              $('#erroTexto').text(xhr.responseJSON.error);
+            } else {
+              $('#erroTexto').text('Erro ao agendar mensagem. Tente novamente.');
+            }
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html> 

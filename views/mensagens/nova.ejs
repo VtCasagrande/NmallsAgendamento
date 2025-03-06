@@ -1,0 +1,100 @@
+<%- include('../layouts/main', { title: 'Nova Mensagem' }) %>
+
+<div class="container mb-5">
+  <div class="row">
+    <div class="col-md-8 mx-auto">
+      <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+          <h2 class="h4 mb-0"><i class="fas fa-plus me-2"></i>Nova Mensagem</h2>
+        </div>
+        <div class="card-body">
+          <% if (errors && errors.length > 0) { %>
+            <div class="alert alert-danger">
+              <ul class="mb-0">
+                <% errors.forEach(error => { %>
+                  <li><%= error.msg %></li>
+                <% }) %>
+              </ul>
+            </div>
+          <% } %>
+
+          <form action="/mensagens" method="POST" novalidate>
+            <div class="mb-3">
+              <label for="nome" class="form-label">Nome</label>
+              <input 
+                type="text" 
+                class="form-control <%= errors.find(e => e.param === 'nome') ? 'is-invalid' : '' %>" 
+                id="nome" 
+                name="nome" 
+                value="<%= mensagem.nome || '' %>" 
+                required
+              >
+              <div class="invalid-feedback">
+                Por favor, informe um nome.
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="telefone" class="form-label">Telefone</label>
+              <input 
+                type="text" 
+                class="form-control telefone <%= errors.find(e => e.param === 'telefone') ? 'is-invalid' : '' %>" 
+                id="telefone" 
+                name="telefone" 
+                value="<%= mensagem.telefone || '' %>" 
+                placeholder="(99) 99999-9999"
+                required
+              >
+              <div class="invalid-feedback">
+                Por favor, informe um telefone válido no formato (99) 99999-9999.
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="mensagem" class="form-label">Mensagem</label>
+              <textarea 
+                class="form-control <%= errors.find(e => e.param === 'mensagem') ? 'is-invalid' : '' %>" 
+                id="mensagem" 
+                name="mensagem" 
+                rows="4" 
+                maxlength="500" 
+                required
+              ><%= mensagem.mensagem || '' %></textarea>
+              <div class="invalid-feedback">
+                Por favor, informe uma mensagem.
+              </div>
+              <div class="form-text">
+                <span id="contador">0</span>/500 caracteres
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label for="dataAgendamento" class="form-label">Data e Hora de Agendamento</label>
+              <input 
+                type="datetime-local" 
+                class="form-control <%= errors.find(e => e.param === 'dataAgendamento') ? 'is-invalid' : '' %>" 
+                id="dataAgendamento" 
+                name="dataAgendamento" 
+                value="<%= mensagem.dataAgendamento || '' %>" 
+                min="<%= dataMinima %>"
+                required
+              >
+              <div class="invalid-feedback">
+                Por favor, selecione uma data e hora futura para o agendamento.
+              </div>
+            </div>
+
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+              <a href="/mensagens" class="btn btn-secondary me-md-2">
+                <i class="fas fa-times me-1"></i> Cancelar
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-1"></i> Salvar
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div> 

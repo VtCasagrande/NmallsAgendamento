@@ -1,0 +1,129 @@
+<%- include('layouts/main', { title: 'Configurações' }) %>
+
+<div class="container mb-5">
+  <% if (typeof dbConnected !== 'undefined' && !dbConnected) { %>
+    <div class="alert alert-warning mb-4">
+      <i class="fas fa-exclamation-triangle me-2"></i> 
+      <strong>Atenção:</strong> O MongoDB não está conectado. As configurações estão sendo salvas localmente.
+    </div>
+  <% } %>
+
+  <div class="row">
+    <div class="col-md-8 mx-auto">
+      <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+          <h2 class="h4 mb-0"><i class="fas fa-cog me-2"></i>Configurações</h2>
+        </div>
+        <div class="card-body">
+          <% if (mensagem) { %>
+            <div class="alert alert-<%= tipo %>">
+              <%= mensagem %>
+            </div>
+          <% } %>
+
+          <form action="/configuracoes" method="POST">
+            <div class="mb-3">
+              <label for="webhookUrl" class="form-label">URL do Webhook</label>
+              <input 
+                type="url" 
+                class="form-control" 
+                id="webhookUrl" 
+                name="webhookUrl" 
+                value="<%= webhookUrl %>" 
+                placeholder="https://webhook.site/seu-endpoint"
+                required
+              >
+              <div class="form-text">
+                URL para onde serão enviadas as notificações quando uma mensagem for criada, atualizada ou excluída.
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <div class="form-check form-switch">
+                <input 
+                  class="form-check-input" 
+                  type="checkbox" 
+                  id="webhookAtivo" 
+                  name="webhookAtivo" 
+                  <%= webhookAtivo ? 'checked' : '' %>
+                >
+                <label class="form-check-label" for="webhookAtivo">Ativar Webhook</label>
+              </div>
+            </div>
+
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+              <a href="/mensagens" class="btn btn-secondary me-md-2">
+                <i class="fas fa-arrow-left me-1"></i> Voltar
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-1"></i> Salvar Configurações
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="card shadow mt-4">
+        <div class="card-header bg-info text-white">
+          <h3 class="h5 mb-0"><i class="fas fa-info-circle me-2"></i>Informações sobre Webhooks</h3>
+        </div>
+        <div class="card-body">
+          <p>Os webhooks são usados para notificar sistemas externos sobre eventos que ocorrem neste aplicativo.</p>
+          
+          <h4 class="h6 mt-3">Eventos que disparam webhooks:</h4>
+          <ul>
+            <li>Criação de uma nova mensagem</li>
+            <li>Atualização de uma mensagem existente</li>
+            <li>Exclusão de uma mensagem</li>
+          </ul>
+
+          <h4 class="h6 mt-3">Formato dos dados enviados:</h4>
+          <pre class="bg-light p-3 rounded"><code>{
+  "acao": "criada", // ou "atualizada" ou "excluida"
+  "mensagem": {
+    "id": "id-da-mensagem",
+    "nome": "Nome do Destinatário",
+    "telefone": "(99) 99999-9999",
+    "mensagem": "Texto da mensagem",
+    "dataAgendamento": "2023-01-01T12:00:00.000Z",
+    "dataCriacao": "2023-01-01T10:00:00.000Z"
+  },
+  "timestamp": "2023-01-01T10:00:00.000Z"
+}</code></pre>
+
+          <h4 class="h6 mt-3">Teste seu webhook:</h4>
+          <p>Você pode usar serviços como <a href="https://webhook.site" target="_blank">webhook.site</a> para testar o recebimento de webhooks.</p>
+          
+          <div class="d-grid gap-2 d-md-flex mt-3">
+            <button id="btnTestarWebhook" class="btn btn-outline-primary">
+              <i class="fas fa-paper-plane me-1"></i> Testar Webhook
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById('btnTestarWebhook').addEventListener('click', async function() {
+    try {
+      const response = await fetch('/api/testar-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        alert('Webhook de teste enviado com sucesso!');
+      } else {
+        alert('Erro ao enviar webhook de teste: ' + data.error);
+      }
+    } catch (error) {
+      alert('Erro ao enviar webhook de teste: ' + error.message);
+    }
+  });
+</script> 

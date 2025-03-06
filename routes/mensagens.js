@@ -1,0 +1,201 @@
+const express = require('express');
+const router = express.Router();
+const { body, validationResult } = require('express-validator');
+const Mensagem = require('../models/Mensagem');
+const moment = require('moment');
+const fs = require('fs');
+const path = require('path');
+const { v4: uuidv4 } = require('uuid');
+
+// Caminho para o arquivo de mensagens local
+const mensagensFilePath = path.join(__dirname, '..', 'data', 'mensagens.json');
+
+// Função para ler as mensagens do armazenamento local
+function lerMensagensLocais() {
+  try {
+    if (fs.existsSync(mensagensFilePath)) {
+      const mensagensData = fs.readFileSync(mensagensFilePath, 'utf8');
+      return JSON.parse(mensagensData);
+    }
+  } catch (err) {
+    console.error('Erro ao ler arquivo de mensagens:', err);
+  }
+  
+  return [];
+}
+
+// Função para salvar as mensagens no armazenamento local
+function salvarMensagensLocais(mensagens) {
+  try {
+    fs.writeFileSync(mensagensFilePath, JSON.stringify(mensagens, null, 2), 'utf8');
+    return true;
+  } catch (err) {
+    console.error('Erro ao salvar arquivo de mensagens:', err);
+    return false;
+  }
+}
+
+// Middleware de validação para o formulário de mensagem
+const validacaoMensagem = [
+  body('nome')
+    .notEmpty().withMessage('Nome é obrigatório')
+    .trim(),
+  
+  body('telefone')
+    .notEmpty().withMessage('Telefone é obrigatório')
+    .matches(/^\(\d{2}\)\s\d{4,5}-\d{4}$/).withMessage('Telefone inválido. Use o formato (99) 99999-9999')
+    .trim(),
+  
+  body('mensagem')
+    .notEmpty().withMessage('Mensagem é obrigatória')
+    .isLength({ max: 500 }).withMessage('Mensagem não pode ter mais de 500 caracteres')
+    .trim(),
+  
+  body('dataAgendamento')
+    .notEmpty().withMessage('Data de agendamento é obrigatória')
+    .custom((value) => {
+      const dataAgendamento = new Date(value);
+      const agora = new Date();
+      if (dataAgendamento <= agora) {
+        throw new Error('A data de agendamento deve ser no futuro');
+      }
+      return true;
+    })
+];
+
+// Rota para listar todas as mensagens agendadas
+router.get('/mensagens', async (req, res) => {
+  try {
+    let mensagens = [];
+    
+    if (res.locals.dbConnected) {
+      // Se o MongoDB estiver conectado, buscar do banco de dados
+      mensagens = await Mensagem.find().sort({ dataAgendamento: 1 });
+    } else {
+      // Se não, usar o armazenamento local
+      mensagens = lerMensagensLocais();
+      // Ordenar por data de agendamento
+      mensagens.sort((a, b) => new Date(a.dataAgendamento) - new Date(b.dataAgendamento));
+    }
+    
+    res.render('mensagens/index', { 
+      title: 'Mensagens Agendadas',
+      mensagens,
+      moment,
+      dbConnected: res.locals.dbConnected
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).render('error', { 
+      title: 'Erro',
+      message: 'Erro ao buscar mensagens agendadas: ' + err.message
+    });
+  }
+});
+
+// Rota para exibir o formulário de nova mensagem
+router.get('/mensagens/nova', (req, res) => {
+  const dataMinima = moment().format('YYYY-MM-DDTHH:mm');
+  res.render('mensagens/nova', { 
+    title: 'Nova Mensagem',
+    mensagem: {},
+    errors: [],
+    dataMinima,
+    dbConnected: res.locals.dbConnected
+  });
+});
+
+// Rota para criar uma nova mensagem
+router.post('/mensagens', validacaoMensagem, async (req, res) => {
+  const errors = validationResult(req);
+  const dataMinima = moment().format('YYYY-MM-DDTHH:mm');
+  
+  if (!errors.isEmpty()) {
+    return res.render('mensagens/nova', {
+      title: 'Nova Mensagem',
+      mensagem: req.body,
+      errors: errors.array(),
+      dataMinima,
+      dbConnected: res.locals.dbConnected
+    });
+  }
+
+  try {
+    if (res.locals.dbConnected) {
+      // Se o MongoDB estiver conectado, salvar no banco de dados
+      const novaMensagem = new Mensagem({
+        nome: req.body.nome,
+        telefone: req.body.telefone,
+        mensagem: req.body.mensagem,
+        dataAgendamento: new Date(req.body.dataAgendamento)
+      });
+
+      await novaMensagem.save();
+    } else {
+      // Se não, salvar no armazenamento local
+      const mensagens = lerMensagensLocais();
+      
+      const novaMensagem = {
+        _id: uuidv4(),
+        nome: req.body.nome,
+        telefone: req.body.telefone,
+        mensagem: req.body.mensagem,
+        dataAgendamento: new Date(req.body.dataAgendamento),
+        dataCriacao: new Date(),
+        webhookEnviado: false
+      };
+      
+      mensagens.push(novaMensagem);
+      salvarMensagensLocais(mensagens);
+      
+      // Enviar webhook manualmente
+      const enviarWebhook = require('../utils/webhook');
+      await enviarWebhook(novaMensagem, 'criada');
+    }
+    
+    res.redirect('/mensagens');
+  } catch (err) {
+    console.error(err);
+    res.render('mensagens/nova', {
+      title: 'Nova Mensagem',
+      mensagem: req.body,
+      errors: [{ msg: 'Erro ao salvar mensagem: ' + err.message }],
+      dataMinima,
+      dbConnected: res.locals.dbConnected
+    });
+  }
+});
+
+// Rota para excluir uma mensagem
+router.delete('/mensagens/:id', async (req, res) => {
+  try {
+    if (res.locals.dbConnected) {
+      // Se o MongoDB estiver conectado, excluir do banco de dados
+      await Mensagem.findOneAndDelete({ _id: req.params.id });
+    } else {
+      // Se não, excluir do armazenamento local
+      const mensagens = lerMensagensLocais();
+      const mensagemIndex = mensagens.findIndex(m => m._id === req.params.id);
+      
+      if (mensagemIndex !== -1) {
+        const mensagemExcluida = mensagens[mensagemIndex];
+        mensagens.splice(mensagemIndex, 1);
+        salvarMensagensLocais(mensagens);
+        
+        // Enviar webhook manualmente
+        const enviarWebhook = require('../utils/webhook');
+        await enviarWebhook(mensagemExcluida, 'excluida');
+      }
+    }
+    
+    res.redirect('/mensagens');
+  } catch (err) {
+    console.error(err);
+    res.status(500).render('error', { 
+      title: 'Erro',
+      message: 'Erro ao excluir mensagem: ' + err.message
+    });
+  }
+});
+
+module.exports = router; 
