@@ -50,7 +50,7 @@
               </td>
               <td><%= mensagem.responsavel || 'Não informado' %></td>
               <td>
-                <%= moment(mensagem.dataAgendamento).tz('America/Sao_Paulo').format('DD/MM/YYYY HH:mm') %>
+                <%= moment(mensagem.dataAgendamento).tz('America/Sao_Paulo').format('DD/MM/YYYY') %>
               </td>
               <td>
                 <form action="/mensagens/<%= mensagem._id %>?_method=DELETE" method="POST" class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir esta mensagem?')">

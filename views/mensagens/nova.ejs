@@ -85,18 +85,18 @@
             </div>
 
             <div class="mb-4">
-              <label for="dataAgendamento" class="form-label">Data e Hora de Agendamento</label>
+              <label for="dataAgendamento" class="form-label">Data de Agendamento</label>
               <input 
-                type="datetime-local" 
+                type="date" 
                 class="form-control <%= errors.find(e => e.param === 'dataAgendamento') ? 'is-invalid' : '' %>" 
                 id="dataAgendamento" 
                 name="dataAgendamento" 
-                value="<%= mensagem.dataAgendamento || '' %>" 
-                min="<%= dataMinima %>"
+                value="<%= mensagem.dataAgendamento ? mensagem.dataAgendamento.substring(0, 10) : '' %>" 
+                min="<%= dataMinima ? dataMinima.substring(0, 10) : '' %>"
                 required
               >
               <div class="invalid-feedback">
-                Por favor, selecione uma data e hora futura para o agendamento.
+                Por favor, selecione uma data futura para o agendamento.
               </div>
             </div>
 

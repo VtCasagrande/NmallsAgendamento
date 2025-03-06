@@ -65,9 +65,11 @@ const validacaoMensagem = [
     .notEmpty().withMessage('Data de agendamento é obrigatória')
     .custom((value) => {
       const dataAgendamento = new Date(value);
-      const agora = new Date();
-      if (dataAgendamento <= agora) {
-        throw new Error('A data de agendamento deve ser no futuro');
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0); // Zerar horas, minutos, segundos e milissegundos
+      
+      if (dataAgendamento < hoje) {
+        throw new Error('A data de agendamento deve ser hoje ou no futuro');
       }
       return true;
     })
@@ -105,7 +107,7 @@ router.get('/mensagens', async (req, res) => {
 
 // Rota para exibir o formulário de nova mensagem
 router.get('/mensagens/nova', (req, res) => {
-  const dataMinima = moment().format('YYYY-MM-DDTHH:mm');
+  const dataMinima = moment().format('YYYY-MM-DD');
   res.render('mensagens/nova', { 
     title: 'Nova Mensagem',
     mensagem: {},

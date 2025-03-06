@@ -57,15 +57,19 @@ const mensagemSchema = new mongoose.Schema({
     type: Date,
     required: [true, 'Data de agendamento é obrigatória'],
     set: function(date) {
-      if (typeof date === 'string' && date.includes('T')) {
-        // Formato ISO (YYYY-MM-DDTHH:MM)
-        const [dataParte, horaParte] = date.split('T');
-        const [ano, mes, dia] = dataParte.split('-');
-        const [hora, minuto] = horaParte.split(':');
+      if (typeof date === 'string') {
+        // Se for uma string no formato YYYY-MM-DD
+        const [ano, mes, dia] = date.split('-');
         
-        // Criar data no fuso horário local (mês é 0-indexed em JavaScript)
-        return new Date(Date.UTC(ano, mes - 1, dia, hora, minuto));
+        // Criar data sem componente de hora (meio-dia UTC para evitar problemas de fuso horário)
+        return new Date(Date.UTC(ano, mes - 1, dia, 12, 0, 0));
       }
+      
+      // Se já for um objeto Date, zerar o componente de hora
+      if (date instanceof Date) {
+        return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0));
+      }
+      
       return date;
     }
   },
@@ -85,7 +89,10 @@ const mensagemSchema = new mongoose.Schema({
 
 // Método para verificar se a data de agendamento é válida (no futuro)
 mensagemSchema.methods.isDataAgendamentoValida = function() {
-  return this.dataAgendamento > new Date();
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0); // Zerar horas, minutos, segundos e milissegundos
+  
+  return this.dataAgendamento >= hoje;
 };
 
 // Função para enviar webhook

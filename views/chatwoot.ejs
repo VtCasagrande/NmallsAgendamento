@@ -145,9 +145,9 @@
           </div>
 
           <div class="mb-3">
-            <label for="dataAgendamento" class="form-label">Data e Hora de Agendamento</label>
+            <label for="dataAgendamento" class="form-label">Data de Agendamento</label>
             <input 
-              type="datetime-local" 
+              type="date" 
               class="form-control" 
               id="dataAgendamento" 
               name="dataAgendamento" 
@@ -182,29 +182,18 @@
   
   <script>
     $(document).ready(function() {
-      // Função para ajustar o fuso horário para Brasil (GMT-3)
-      function ajustarFusoHorario(data) {
-        // Cria uma nova data com o fuso horário correto
-        const dataLocal = new Date(data);
-        return dataLocal;
-      }
-      
-      // Função para formatar a data no formato aceito pelo input datetime-local
+      // Função para formatar a data no formato aceito pelo input date
       function formatarDataParaInput(data) {
         const ano = data.getFullYear();
         const mes = String(data.getMonth() + 1).padStart(2, '0');
         const dia = String(data.getDate()).padStart(2, '0');
-        const hora = String(data.getHours()).padStart(2, '0');
-        const minuto = String(data.getMinutes()).padStart(2, '0');
         
-        return `${ano}-${mes}-${dia}T${hora}:${minuto}`;
+        return `${ano}-${mes}-${dia}`;
       }
       
-      // Definir data mínima como agora + 5 minutos (tempo mínimo razoável)
-      const agora = new Date();
-      agora.setMinutes(agora.getMinutes() + 5); // Adiciona 5 minutos em vez de 30
-      
-      const dataMinima = formatarDataParaInput(agora);
+      // Definir data mínima como hoje
+      const hoje = new Date();
+      const dataMinima = formatarDataParaInput(hoje);
       $('#dataAgendamento').attr('min', dataMinima);
       $('#dataAgendamento').val(dataMinima);
 
@@ -298,7 +287,7 @@
           telefone: $('#telefone').val(),
           mensagem: $('#mensagem').val(),
           responsavel: $('#responsavel').val(),
-          dataAgendamento: dataInput // Enviar exatamente como foi selecionado
+          dataAgendamento: dataInput // Enviar apenas a data
         };
         
         console.log('Data selecionada pelo usuário:', dataInput);
@@ -313,14 +302,12 @@
         
         // Validar data de agendamento
         const dataAgendamento = new Date(dataInput);
-        const agoraValidacao = new Date();
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0); // Zerar horas, minutos, segundos e milissegundos
         
-        // Adicionar 5 minutos à hora atual para dar uma margem
-        agoraValidacao.setMinutes(agoraValidacao.getMinutes() + 5);
-        
-        if (dataAgendamento <= agoraValidacao) {
+        if (dataAgendamento < hoje) {
           $('#mensagemErro').removeClass('d-none');
-          $('#erroTexto').text('A data de agendamento deve ser pelo menos 5 minutos no futuro');
+          $('#erroTexto').text('A data de agendamento deve ser hoje ou no futuro');
           return;
         }
         
@@ -336,9 +323,8 @@
             $('#agendamentoForm')[0].reset();
             
             // Definir data mínima novamente
-            const agora = new Date();
-            agora.setMinutes(agora.getMinutes() + 5); // Adiciona 5 minutos em vez de 30
-            const dataMinima = formatarDataParaInput(agora);
+            const hoje = new Date();
+            const dataMinima = formatarDataParaInput(hoje);
             $('#dataAgendamento').val(dataMinima);
             
             // Esconder mensagem de sucesso após 3 segundos
