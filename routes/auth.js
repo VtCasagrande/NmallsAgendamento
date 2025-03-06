@@ -6,22 +6,6 @@ const { registrarLog } = require('../utils/logger');
 
 // Middleware para verificar se o usuário está autenticado
 const autenticar = (req, res, next) => {
-  // TEMPORÁRIO: Permitir acesso sem autenticação
-  // Criar um usuário fictício para permitir acesso
-  req.usuario = {
-    id: '000000000000000000000000',
-    nome: 'Usuário Temporário',
-    email: 'temp@example.com',
-    role: 'admin'
-  };
-  
-  // Disponibilizar o usuário para as views
-  res.locals.usuario = req.usuario;
-  
-  // Continuar para a próxima middleware
-  next();
-  
-  /* CÓDIGO ORIGINAL - COMENTADO TEMPORARIAMENTE
   // Verificar se existe um token no cookie
   const token = req.cookies.token;
   
@@ -33,20 +17,16 @@ const autenticar = (req, res, next) => {
     // Verificar o token
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'segredo_temporario');
     req.usuario = decoded;
+    res.locals.usuario = decoded; // Disponibilizar o usuário para as views
     next();
   } catch (error) {
     res.clearCookie('token');
     return res.redirect('/login');
   }
-  */
 };
 
 // Middleware para verificar se o usuário é administrador
 const verificarAdmin = (req, res, next) => {
-  // TEMPORÁRIO: Permitir acesso de administrador para todos
-  next();
-  
-  /* CÓDIGO ORIGINAL - COMENTADO TEMPORARIAMENTE
   if (!req.usuario || req.usuario.role !== 'admin') {
     return res.status(403).render('error', { 
       title: 'Acesso Negado',
@@ -54,7 +34,6 @@ const verificarAdmin = (req, res, next) => {
     });
   }
   next();
-  */
 };
 
 // Rota para a página de login

@@ -2,10 +2,15 @@ const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const Mensagem = require('../models/Mensagem');
-const moment = require('moment');
+const moment = require('moment-timezone');
 const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
+
+// Configurar o moment.js para usar o fuso horário do Brasil
+moment.locale('pt-br');
+// Definir o fuso horário para o Brasil (GMT-3)
+moment.tz.setDefault('America/Sao_Paulo');
 
 // Caminho para o arquivo de mensagens local
 const mensagensFilePath = path.join(__dirname, '..', 'data', 'mensagens.json');

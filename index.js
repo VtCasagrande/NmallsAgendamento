@@ -6,6 +6,11 @@ const methodOverride = require('method-override');
 const fs = require('fs');
 const cookieParser = require('cookie-parser');
 
+// Configurar o fuso horário para o Brasil (GMT-3)
+process.env.TZ = 'America/Sao_Paulo';
+console.log('Fuso horário configurado para:', process.env.TZ);
+console.log('Data e hora atual:', new Date().toLocaleString('pt-BR'));
+
 // Verificar se o diretório de dados existe, se não, criar
 const dataDir = path.join(__dirname, 'data');
 if (!fs.existsSync(dataDir)) {
@@ -64,8 +69,10 @@ app.use(cookieParser());
 
 // Middleware para formatar data e hora para exibição
 app.use((req, res, next) => {
-  res.locals.moment = require('moment');
-  res.locals.moment.locale('pt-br');
+  const moment = require('moment-timezone');
+  moment.locale('pt-br');
+  moment.tz.setDefault('America/Sao_Paulo');
+  res.locals.moment = moment;
   next();
 });
 
