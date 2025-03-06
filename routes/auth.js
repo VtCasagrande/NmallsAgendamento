@@ -45,6 +45,15 @@ router.get('/registro', autenticar, verificarAdmin, (req, res) => {
   res.render('auth/registro', { title: 'Registro', error: null });
 });
 
+// Rota alternativa para registro de administrador (para recuperação)
+router.get('/admin-registro', (req, res) => {
+  res.render('auth/registro', { 
+    title: 'Registro de Administrador', 
+    error: null,
+    isAdminRegistro: true
+  });
+});
+
 // Rota para processar o login
 router.post('/login', async (req, res) => {
   try {
@@ -157,6 +166,72 @@ router.post('/registro', autenticar, verificarAdmin, async (req, res) => {
     res.render('auth/registro', { 
       title: 'Registro', 
       error: 'Ocorreu um erro ao registrar. Tente novamente.' 
+    });
+  }
+});
+
+// Rota para processar o registro de administrador (para recuperação)
+router.post('/admin-registro', async (req, res) => {
+  try {
+    const { nome, email, senha, codigoAutenticador } = req.body;
+    
+    // Verificar o código de autenticador especial para recuperação
+    if (codigoAutenticador !== 'vc632802') {
+      return res.render('auth/registro', { 
+        title: 'Registro de Administrador', 
+        error: 'Código de recuperação inválido',
+        isAdminRegistro: true
+      });
+    }
+    
+    // Verificar se o email já está em uso
+    const usuarioExistente = await Usuario.findOne({ email });
+    if (usuarioExistente) {
+      return res.render('auth/registro', { 
+        title: 'Registro de Administrador', 
+        error: 'Este email já está em uso',
+        isAdminRegistro: true
+      });
+    }
+    
+    // Criar novo usuário administrador
+    const novoUsuario = new Usuario({
+      nome,
+      email,
+      senha,
+      role: 'admin',
+      dataCriacao: new Date()
+    });
+    
+    await novoUsuario.save();
+    
+    // Criar token JWT
+    const token = jwt.sign(
+      { 
+        id: novoUsuario._id, 
+        nome: novoUsuario.nome, 
+        email: novoUsuario.email,
+        role: novoUsuario.role
+      },
+      process.env.JWT_SECRET || 'segredo_temporario',
+      { expiresIn: '1d' }
+    );
+    
+    // Salvar token em cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000 // 1 dia
+    });
+    
+    // Redirecionar para a página principal
+    res.redirect('/mensagens');
+    
+  } catch (error) {
+    console.error('Erro no registro de administrador:', error);
+    res.render('auth/registro', { 
+      title: 'Registro de Administrador', 
+      error: 'Ocorreu um erro ao registrar. Tente novamente.',
+      isAdminRegistro: true
     });
   }
 });

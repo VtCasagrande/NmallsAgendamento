@@ -19,6 +19,7 @@ const configuracoesRoutes = require('./routes/configuracoes');
 const chatwootRoutes = require('./routes/chatwoot');
 const { router: authRoutes, autenticar } = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
+const resetRoutes = require('./routes/reset');
 
 // Inicializando o app
 const app = express();
@@ -95,6 +96,9 @@ app.use((req, res, next) => {
 
 // Rotas de autenticação (não protegidas)
 app.use('/', authRoutes);
+
+// Rota de reset do sistema (não protegida)
+app.use('/', resetRoutes);
 
 // Rota para criar o usuário administrador inicial
 app.get('/setup-admin', async (req, res) => {
