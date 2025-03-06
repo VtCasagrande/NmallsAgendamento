@@ -19,9 +19,28 @@
     </div>
   </div>
 
+  <!-- Abas para navegação entre mensagens agendadas e enviadas -->
+  <ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+      <a class="nav-link <%= tipoLista === 'agendadas' ? 'active' : '' %>" href="/mensagens">
+        <i class="fas fa-clock me-1"></i> Mensagens Agendadas
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link <%= tipoLista === 'enviadas' ? 'active' : '' %>" href="/mensagens/enviadas">
+        <i class="fas fa-check-circle me-1"></i> Mensagens Enviadas
+      </a>
+    </li>
+  </ul>
+
   <% if (mensagens.length === 0) { %>
     <div class="alert alert-info">
-      <i class="fas fa-info-circle me-2"></i> Não há mensagens agendadas. Clique em "Nova Mensagem" para agendar uma.
+      <i class="fas fa-info-circle me-2"></i> 
+      <% if (tipoLista === 'agendadas') { %>
+        Não há mensagens agendadas. Clique em "Nova Mensagem" para agendar uma.
+      <% } else { %>
+        Não há mensagens enviadas.
+      <% } %>
     </div>
   <% } else { %>
     <div class="table-responsive">
@@ -53,11 +72,20 @@
                 <%= moment(mensagem.dataAgendamento).tz('America/Sao_Paulo').format('DD/MM/YYYY') %>
               </td>
               <td>
-                <form action="/mensagens/<%= mensagem._id %>?_method=DELETE" method="POST" class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir esta mensagem?')">
-                  <button type="submit" class="btn btn-danger btn-sm">
-                    <i class="fas fa-trash"></i>
-                  </button>
-                </form>
+                <% if (tipoLista === 'agendadas') { %>
+                  <form action="/mensagens/<%= mensagem._id %>/marcar-enviada" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-success btn-sm" title="Marcar como enviada">
+                      <i class="fas fa-check"></i>
+                    </button>
+                  </form>
+                  <form action="/mensagens/<%= mensagem._id %>?_method=DELETE" method="POST" class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir esta mensagem?')">
+                    <button type="submit" class="btn btn-danger btn-sm" title="Excluir mensagem">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </form>
+                <% } else { %>
+                  <span class="badge bg-success">Enviada</span>
+                <% } %>
               </td>
             </tr>
           <% }) %>

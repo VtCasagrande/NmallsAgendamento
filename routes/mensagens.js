@@ -82,10 +82,13 @@ router.get('/mensagens', async (req, res) => {
     
     if (res.locals.dbConnected) {
       // Se o MongoDB estiver conectado, buscar do banco de dados
-      mensagens = await Mensagem.find().sort({ dataAgendamento: 1 });
+      // Buscar apenas mensagens não enviadas (agendadas)
+      mensagens = await Mensagem.find({ mensagemEnviada: false }).sort({ dataAgendamento: 1 });
     } else {
       // Se não, usar o armazenamento local
       mensagens = lerMensagensLocais();
+      // Filtrar apenas mensagens não enviadas
+      mensagens = mensagens.filter(m => !m.mensagemEnviada);
       // Ordenar por data de agendamento
       mensagens.sort((a, b) => new Date(a.dataAgendamento) - new Date(b.dataAgendamento));
     }
@@ -94,13 +97,48 @@ router.get('/mensagens', async (req, res) => {
       title: 'Mensagens Agendadas',
       mensagens,
       moment,
-      dbConnected: res.locals.dbConnected
+      dbConnected: res.locals.dbConnected,
+      tipoLista: 'agendadas'
     });
   } catch (err) {
     console.error(err);
     res.status(500).render('error', { 
       title: 'Erro',
       message: 'Erro ao buscar mensagens agendadas: ' + err.message
+    });
+  }
+});
+
+// Rota para listar mensagens enviadas
+router.get('/mensagens/enviadas', async (req, res) => {
+  try {
+    let mensagens = [];
+    
+    if (res.locals.dbConnected) {
+      // Se o MongoDB estiver conectado, buscar do banco de dados
+      // Buscar apenas mensagens enviadas
+      mensagens = await Mensagem.find({ mensagemEnviada: true }).sort({ dataAgendamento: -1 });
+    } else {
+      // Se não, usar o armazenamento local
+      mensagens = lerMensagensLocais();
+      // Filtrar apenas mensagens enviadas
+      mensagens = mensagens.filter(m => m.mensagemEnviada);
+      // Ordenar por data de agendamento (decrescente)
+      mensagens.sort((a, b) => new Date(b.dataAgendamento) - new Date(a.dataAgendamento));
+    }
+    
+    res.render('mensagens/index', { 
+      title: 'Mensagens Enviadas',
+      mensagens,
+      moment,
+      dbConnected: res.locals.dbConnected,
+      tipoLista: 'enviadas'
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).render('error', { 
+      title: 'Erro',
+      message: 'Erro ao buscar mensagens enviadas: ' + err.message
     });
   }
 });
@@ -282,5 +320,81 @@ router.delete('/mensagens/:id', async (req, res) => {
     });
   }
 });
+
+// Rota para marcar mensagem como enviada
+router.post('/mensagens/:id/marcar-enviada', async (req, res) => {
+  try {
+    if (res.locals.dbConnected) {
+      // Se o MongoDB estiver conectado, atualizar no banco de dados
+      await Mensagem.findByIdAndUpdate(req.params.id, { mensagemEnviada: true });
+    } else {
+      // Se não, atualizar no armazenamento local
+      const mensagens = lerMensagensLocais();
+      const mensagemIndex = mensagens.findIndex(m => m._id === req.params.id);
+      
+      if (mensagemIndex !== -1) {
+        mensagens[mensagemIndex].mensagemEnviada = true;
+        salvarMensagensLocais(mensagens);
+      }
+    }
+    
+    res.redirect('/mensagens');
+  } catch (err) {
+    console.error(err);
+    res.status(500).render('error', { 
+      title: 'Erro',
+      message: 'Erro ao marcar mensagem como enviada: ' + err.message
+    });
+  }
+});
+
+// Função para verificar e atualizar mensagens com data passada
+async function verificarMensagensVencidas() {
+  try {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0); // Zerar horas, minutos, segundos e milissegundos
+    
+    if (mongoose.connection.readyState === 1) {
+      // Se o MongoDB estiver conectado, atualizar no banco de dados
+      await Mensagem.updateMany(
+        { 
+          dataAgendamento: { $lt: hoje },
+          mensagemEnviada: false
+        },
+        { 
+          mensagemEnviada: true 
+        }
+      );
+      
+      console.log('Mensagens vencidas atualizadas no banco de dados');
+    } else {
+      // Se não, atualizar no armazenamento local
+      const mensagens = lerMensagensLocais();
+      let atualizadas = false;
+      
+      mensagens.forEach(mensagem => {
+        const dataAgendamento = new Date(mensagem.dataAgendamento);
+        if (dataAgendamento < hoje && !mensagem.mensagemEnviada) {
+          mensagem.mensagemEnviada = true;
+          atualizadas = true;
+        }
+      });
+      
+      if (atualizadas) {
+        salvarMensagensLocais(mensagens);
+        console.log('Mensagens vencidas atualizadas no armazenamento local');
+      }
+    }
+  } catch (err) {
+    console.error('Erro ao verificar mensagens vencidas:', err);
+  }
+}
+
+// Executar a verificação de mensagens vencidas ao iniciar o servidor
+verificarMensagensVencidas();
+
+// Agendar a verificação para rodar diariamente às 00:01
+const schedule = require('node-schedule');
+schedule.scheduleJob('1 0 * * *', verificarMensagensVencidas);
 
 module.exports = router; 

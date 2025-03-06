@@ -81,6 +81,10 @@ const mensagemSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  mensagemEnviada: {
+    type: Boolean,
+    default: false
+  },
   criadoPor: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Usuario'
