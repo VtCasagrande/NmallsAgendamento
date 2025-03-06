@@ -74,4 +74,63 @@ router.get('/reset-system', async (req, res) => {
   }
 });
 
+// Rota simples para criar um usuário administrador sem autenticação
+router.get('/criar-admin', async (req, res) => {
+  try {
+    // Criar um novo usuário administrador
+    const Usuario = require('../models/Usuario');
+    
+    // Verificar se o email já está em uso
+    const usuarioExistente = await Usuario.findOne({ email: 'vitor@nmalls.com.br' });
+    if (usuarioExistente) {
+      // Se o usuário já existe, atualizar para administrador
+      usuarioExistente.role = 'admin';
+      await usuarioExistente.save();
+      
+      return res.json({
+        success: true,
+        message: 'Usuário existente atualizado para administrador.',
+        usuario: {
+          nome: usuarioExistente.nome,
+          email: usuarioExistente.email,
+          role: 'admin'
+        }
+      });
+    }
+    
+    // Criar hash da senha
+    const bcrypt = require('bcryptjs');
+    const salt = await bcrypt.genSalt(10);
+    const senhaHash = await bcrypt.hash('vc632802', salt);
+    
+    const novoAdmin = new Usuario({
+      nome: 'Vitor Casagrande',
+      email: 'vitor@nmalls.com.br',
+      senha: senhaHash,
+      role: 'admin',
+      dataCriacao: new Date()
+    });
+    
+    await novoAdmin.save();
+    
+    res.json({
+      success: true,
+      message: 'Usuário administrador criado com sucesso.',
+      usuario: {
+        nome: 'Vitor Casagrande',
+        email: 'vitor@nmalls.com.br',
+        senha: 'vc632802',
+        role: 'admin'
+      }
+    });
+    
+  } catch (error) {
+    console.error('Erro ao criar usuário administrador:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao criar usuário administrador: ' + error.message
+    });
+  }
+});
+
 module.exports = router; 
