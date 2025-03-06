@@ -55,7 +55,33 @@ const mensagemSchema = new mongoose.Schema({
   },
   dataAgendamento: {
     type: Date,
-    required: [true, 'Data de agendamento é obrigatória']
+    required: [true, 'Data de agendamento é obrigatória'],
+    get: function(date) {
+      // Ao recuperar a data, garantir que esteja no fuso horário correto
+      if (date) {
+        return new Date(date.getTime());
+      }
+      return date;
+    },
+    set: function(date) {
+      // Ao definir a data, garantir que esteja no fuso horário correto
+      if (date) {
+        // Se for uma string, converter para objeto Date
+        if (typeof date === 'string') {
+          // Se não tiver 'T', é uma string no formato local
+          if (!date.includes('T')) {
+            const [dataParte, horaParte] = date.split(' ');
+            const [ano, mes, dia] = dataParte.split('-');
+            const [hora, minuto] = horaParte ? horaParte.split(':') : ['0', '0'];
+            
+            // Criar data no fuso horário local (mês é 0-indexed em JavaScript)
+            return new Date(ano, mes - 1, dia, hora, minuto);
+          }
+        }
+        return new Date(date);
+      }
+      return date;
+    }
   },
   dataCriacao: {
     type: Date,

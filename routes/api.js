@@ -77,9 +77,25 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
     console.log('API: Status da conexão MongoDB:', isConnected ? 'Conectado' : 'Desconectado');
     
     // Ajustar a data para o fuso horário do Brasil
-    const dataAgendamento = new Date(req.body.dataAgendamento);
-    console.log('API: Data recebida (ISO):', req.body.dataAgendamento);
+    let dataAgendamento;
+    
+    // Verificar se a data está no formato ISO ou no formato local
+    if (req.body.dataAgendamento.includes('T')) {
+      // Formato ISO
+      dataAgendamento = new Date(req.body.dataAgendamento);
+    } else {
+      // Formato local (YYYY-MM-DD HH:MM)
+      const [dataParte, horaParte] = req.body.dataAgendamento.split(' ');
+      const [ano, mes, dia] = dataParte.split('-');
+      const [hora, minuto] = horaParte.split(':');
+      
+      // Criar data no fuso horário local (mês é 0-indexed em JavaScript)
+      dataAgendamento = new Date(ano, mes - 1, dia, hora, minuto);
+    }
+    
+    console.log('API: Data recebida (original):', req.body.dataAgendamento);
     console.log('API: Data convertida (objeto):', dataAgendamento);
+    console.log('API: Data convertida (local string):', dataAgendamento.toString());
     
     const novaMensagem = new Mensagem({
       nome: req.body.nome,

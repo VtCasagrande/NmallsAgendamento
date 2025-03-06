@@ -294,26 +294,24 @@
         const dataInput = $('#dataAgendamento').val();
         const dataObj = new Date(dataInput);
         
-        // Garantir que a data seja interpretada como horário local (Brasil)
-        // e não como UTC
-        const dataAjustada = new Date(
-          dataObj.getFullYear(),
-          dataObj.getMonth(),
-          dataObj.getDate(),
-          dataObj.getHours(),
-          dataObj.getMinutes()
-        );
+        // Calcular o offset do fuso horário em minutos
+        const offsetMinutos = dataObj.getTimezoneOffset();
+        console.log('Offset do fuso horário (minutos):', offsetMinutos);
+        
+        // Criar uma string de data no formato ISO mas com o fuso horário local
+        // Formato: YYYY-MM-DDTHH:MM:SS-03:00 (para Brasil)
+        const dataISO = dataInput.replace('T', ' ');
         
         const formData = {
           nome: $('#nome').val(),
           telefone: $('#telefone').val(),
           mensagem: $('#mensagem').val(),
           responsavel: $('#responsavel').val(),
-          dataAgendamento: dataAjustada.toISOString() // Usar ISO para enviar ao servidor
+          dataAgendamento: dataISO // Enviar como string no formato local
         };
         
         console.log('Data original do input:', dataInput);
-        console.log('Data ajustada para envio:', formData.dataAgendamento);
+        console.log('Data para envio (formato local):', dataISO);
         
         // Validar telefone
         const telefoneRegex = /^\(\d{2}\)\s\d{4,5}-\d{4}$/;
