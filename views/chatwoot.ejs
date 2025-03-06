@@ -153,6 +153,10 @@
               name="dataAgendamento" 
               required
             >
+            <div class="alert alert-warning mt-2 mb-0">
+              <i class="fas fa-exclamation-triangle me-2"></i>
+              <strong>Atenção:</strong> O fluxo roda às 9h da manhã. Se você agendar para hoje após as 9h, o agendamento só será processado no próximo dia.
+            </div>
           </div>
 
           <div class="d-grid">
@@ -309,6 +313,19 @@
           $('#mensagemErro').removeClass('d-none');
           $('#erroTexto').text('A data de agendamento deve ser hoje ou no futuro');
           return;
+        }
+        
+        // Verificar se a data é hoje e se já passou das 9h da manhã
+        const agora = new Date();
+        const horaAtual = agora.getHours();
+        const dataAgendamentoStr = dataAgendamento.toISOString().split('T')[0];
+        const hojeStr = agora.toISOString().split('T')[0];
+        
+        if (dataAgendamentoStr === hojeStr && horaAtual >= 9) {
+          // Mostrar alerta, mas permitir o envio
+          if (!confirm('ATENÇÃO: O fluxo roda às 9h da manhã. Como já passou desse horário, este agendamento não será realizado hoje. Deseja continuar mesmo assim?')) {
+            return;
+          }
         }
         
         // Enviar para a API

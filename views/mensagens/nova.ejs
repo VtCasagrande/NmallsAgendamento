@@ -98,6 +98,10 @@
               <div class="invalid-feedback">
                 Por favor, selecione uma data futura para o agendamento.
               </div>
+              <div class="alert alert-warning mt-2 mb-0">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Atenção:</strong> O fluxo roda às 9h da manhã. Se você agendar para hoje após as 9h, o agendamento só será processado no próximo dia.
+              </div>
             </div>
 
             <div class="d-grid gap-2 d-md-flex justify-content-md-end">
@@ -113,4 +117,54 @@
       </div>
     </div>
   </div>
-</div> 
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Contador de caracteres para o campo de mensagem
+    const mensagemTextarea = document.getElementById('mensagem');
+    const contador = document.getElementById('contador');
+    
+    if (mensagemTextarea && contador) {
+      contador.textContent = mensagemTextarea.value.length;
+      
+      mensagemTextarea.addEventListener('input', function() {
+        contador.textContent = this.value.length;
+      });
+    }
+    
+    // Máscara para o campo de telefone
+    if (typeof $ !== 'undefined' && $.fn.mask) {
+      $('.telefone').mask('(00) 00000-0000', {
+        placeholder: '(99) 99999-9999'
+      });
+    }
+    
+    // Validação para o formulário
+    const form = document.querySelector('form');
+    
+    if (form) {
+      form.addEventListener('submit', function(e) {
+        // Verificar se a data é hoje e se já passou das 9h da manhã
+        const dataInput = document.getElementById('dataAgendamento').value;
+        const dataAgendamento = new Date(dataInput);
+        const agora = new Date();
+        const horaAtual = agora.getHours();
+        
+        // Converter para strings no formato YYYY-MM-DD para comparação
+        const dataAgendamentoStr = dataAgendamento.toISOString().split('T')[0];
+        const hojeStr = agora.toISOString().split('T')[0];
+        
+        if (dataAgendamentoStr === hojeStr && horaAtual >= 9) {
+          // Mostrar alerta, mas permitir o envio se o usuário confirmar
+          if (!confirm('ATENÇÃO: O fluxo roda às 9h da manhã. Como já passou desse horário, este agendamento não será realizado hoje. Deseja continuar mesmo assim?')) {
+            e.preventDefault();
+            return false;
+          }
+        }
+      });
+    }
+  });
+</script>
+
+<%- include('../layouts/footer') %> 
