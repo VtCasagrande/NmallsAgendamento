@@ -6,6 +6,7 @@ const moment = require('moment-timezone');
 const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
+const mongoose = require('mongoose');
 
 // Configurar o moment.js para usar o fuso horário do Brasil
 moment.locale('pt-br');
@@ -130,6 +131,12 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
   }
 
   try {
+    console.log('Formulário: Recebendo nova mensagem:', req.body);
+    
+    // Verificar conexão com o MongoDB
+    const isConnected = mongoose.connection.readyState === 1;
+    console.log('Formulário: Status da conexão MongoDB:', isConnected ? 'Conectado' : 'Desconectado');
+    
     // Criar objeto de mensagem com o usuário atual como criador
     const novaMensagem = new Mensagem({
       nome: req.body.nome,
@@ -140,16 +147,27 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
       criadoPor: req.usuario ? req.usuario.id : null
     });
 
+    console.log('Formulário: Objeto de mensagem criado:', novaMensagem);
+
+    let mensagemSalvaNoBanco = null;
+    
     // Sempre tentar salvar no banco de dados primeiro
-    if (res.locals.dbConnected) {
-      await novaMensagem.save();
-    } 
+    if (isConnected) {
+      try {
+        mensagemSalvaNoBanco = await novaMensagem.save();
+        console.log('Formulário: Mensagem salva com sucesso no MongoDB:', mensagemSalvaNoBanco._id);
+      } catch (saveError) {
+        console.error('Formulário: Erro ao salvar no MongoDB:', saveError);
+      }
+    } else {
+      console.log('Formulário: MongoDB não está conectado, salvando apenas localmente');
+    }
     
     // Também salvar localmente (independente do banco de dados)
     const mensagens = lerMensagensLocais();
     
     const mensagemLocal = {
-      _id: novaMensagem._id || uuidv4(),
+      _id: mensagemSalvaNoBanco ? mensagemSalvaNoBanco._id.toString() : uuidv4(),
       nome: req.body.nome,
       telefone: req.body.telefone,
       mensagem: req.body.mensagem,
@@ -162,16 +180,18 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
     
     mensagens.push(mensagemLocal);
     salvarMensagensLocais(mensagens);
+    console.log('Formulário: Mensagem salva localmente com ID:', mensagemLocal._id);
     
     // Enviar webhook manualmente se não estiver conectado ao banco
-    if (!res.locals.dbConnected) {
+    if (!isConnected) {
       const enviarWebhook = require('../utils/webhook');
       await enviarWebhook(mensagemLocal, 'criada');
+      console.log('Formulário: Webhook enviado manualmente');
     }
     
     res.redirect('/mensagens');
   } catch (err) {
-    console.error(err);
+    console.error('Formulário: Erro geral ao processar mensagem:', err);
     res.render('mensagens/nova', {
       title: 'Nova Mensagem',
       mensagem: req.body,

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const Mensagem = require('../models/Mensagem');
+const mongoose = require('mongoose');
 
 // Middleware de validação para a API
 const validacaoMensagem = [
@@ -69,19 +70,144 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
   }
 
   try {
+    console.log('API: Recebendo nova mensagem:', req.body);
+    
+    // Verificar conexão com o MongoDB
+    const isConnected = mongoose.connection.readyState === 1;
+    console.log('API: Status da conexão MongoDB:', isConnected ? 'Conectado' : 'Desconectado');
+    
     const novaMensagem = new Mensagem({
       nome: req.body.nome,
       telefone: req.body.telefone,
       mensagem: req.body.mensagem,
       responsavel: req.body.responsavel,
-      dataAgendamento: new Date(req.body.dataAgendamento)
+      dataAgendamento: new Date(req.body.dataAgendamento),
+      criadoPor: req.usuario ? req.usuario.id : null
     });
 
-    const mensagemSalva = await novaMensagem.save();
-    res.status(201).json(mensagemSalva);
+    console.log('API: Objeto de mensagem criado:', novaMensagem);
+    
+    try {
+      const mensagemSalva = await novaMensagem.save();
+      console.log('API: Mensagem salva com sucesso no MongoDB:', mensagemSalva._id);
+      
+      // Também salvar localmente para redundância
+      const fs = require('fs');
+      const path = require('path');
+      const { v4: uuidv4 } = require('uuid');
+      
+      // Caminho para o arquivo de mensagens local
+      const mensagensFilePath = path.join(__dirname, '..', 'data', 'mensagens.json');
+      
+      // Função para ler as mensagens do armazenamento local
+      function lerMensagensLocais() {
+        try {
+          if (fs.existsSync(mensagensFilePath)) {
+            const mensagensData = fs.readFileSync(mensagensFilePath, 'utf8');
+            return JSON.parse(mensagensData);
+          }
+        } catch (err) {
+          console.error('Erro ao ler arquivo de mensagens:', err);
+        }
+        return [];
+      }
+      
+      // Função para salvar as mensagens no armazenamento local
+      function salvarMensagensLocais(mensagens) {
+        try {
+          fs.writeFileSync(mensagensFilePath, JSON.stringify(mensagens, null, 2), 'utf8');
+          return true;
+        } catch (err) {
+          console.error('Erro ao salvar arquivo de mensagens:', err);
+          return false;
+        }
+      }
+      
+      const mensagens = lerMensagensLocais();
+      
+      const mensagemLocal = {
+        _id: mensagemSalva._id.toString(),
+        nome: req.body.nome,
+        telefone: req.body.telefone,
+        mensagem: req.body.mensagem,
+        responsavel: req.body.responsavel,
+        dataAgendamento: new Date(req.body.dataAgendamento),
+        dataCriacao: new Date(),
+        webhookEnviado: false,
+        criadoPor: req.usuario ? req.usuario.id : null
+      };
+      
+      mensagens.push(mensagemLocal);
+      salvarMensagensLocais(mensagens);
+      console.log('API: Mensagem também salva localmente');
+      
+      res.status(201).json(mensagemSalva);
+    } catch (saveError) {
+      console.error('API: Erro ao salvar no MongoDB:', saveError);
+      
+      // Se falhar ao salvar no MongoDB, salvar apenas localmente
+      const fs = require('fs');
+      const path = require('path');
+      const { v4: uuidv4 } = require('uuid');
+      
+      // Caminho para o arquivo de mensagens local
+      const mensagensFilePath = path.join(__dirname, '..', 'data', 'mensagens.json');
+      
+      // Função para ler as mensagens do armazenamento local
+      function lerMensagensLocais() {
+        try {
+          if (fs.existsSync(mensagensFilePath)) {
+            const mensagensData = fs.readFileSync(mensagensFilePath, 'utf8');
+            return JSON.parse(mensagensData);
+          }
+        } catch (err) {
+          console.error('Erro ao ler arquivo de mensagens:', err);
+        }
+        return [];
+      }
+      
+      // Função para salvar as mensagens no armazenamento local
+      function salvarMensagensLocais(mensagens) {
+        try {
+          fs.writeFileSync(mensagensFilePath, JSON.stringify(mensagens, null, 2), 'utf8');
+          return true;
+        } catch (err) {
+          console.error('Erro ao salvar arquivo de mensagens:', err);
+          return false;
+        }
+      }
+      
+      const mensagens = lerMensagensLocais();
+      
+      const mensagemLocal = {
+        _id: uuidv4(),
+        nome: req.body.nome,
+        telefone: req.body.telefone,
+        mensagem: req.body.mensagem,
+        responsavel: req.body.responsavel,
+        dataAgendamento: new Date(req.body.dataAgendamento),
+        dataCriacao: new Date(),
+        webhookEnviado: false,
+        criadoPor: req.usuario ? req.usuario.id : null
+      };
+      
+      mensagens.push(mensagemLocal);
+      salvarMensagensLocais(mensagens);
+      console.log('API: Mensagem salva apenas localmente devido a erro no MongoDB');
+      
+      // Enviar webhook manualmente
+      const enviarWebhook = require('../utils/webhook');
+      await enviarWebhook(mensagemLocal, 'criada');
+      
+      res.status(201).json({
+        _id: mensagemLocal._id,
+        ...mensagemLocal,
+        _local: true
+      });
+    }
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erro ao criar mensagem' });
+    console.error('API: Erro geral ao processar mensagem:', err);
+    res.status(500).json({ error: 'Erro ao criar mensagem: ' + err.message });
   }
 });
 

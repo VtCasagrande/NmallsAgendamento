@@ -38,18 +38,39 @@ console.log('MONGODB_URI:', process.env.MONGODB_URI);
 // Usar uma string de conexão alternativa se a variável de ambiente não estiver definida
 const mongoURI = process.env.MONGODB_URI || 'mongodb://admin:senha_admin@mongodb-agendamento:27017/agendamento?authSource=admin';
 
+console.log('Tentando conectar ao MongoDB com URI:', mongoURI);
+
 mongoose.connect(mongoURI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 5000 // Timeout após 5 segundos
+  serverSelectionTimeoutMS: 30000, // Aumentar timeout para 30 segundos
+  connectTimeoutMS: 30000,
+  socketTimeoutMS: 45000
 })
 .then(() => {
-  console.log('Conectado ao MongoDB');
+  console.log('Conectado ao MongoDB com sucesso');
   dbConnected = true;
 })
 .catch(err => {
   console.error('Erro ao conectar ao MongoDB:', err.message);
+  console.error('Detalhes do erro:', err);
   console.log('O aplicativo continuará funcionando com armazenamento local.');
+});
+
+// Adicionar evento de conexão para monitorar o estado da conexão
+mongoose.connection.on('connected', () => {
+  console.log('Mongoose conectado ao MongoDB');
+  dbConnected = true;
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('Erro na conexão do Mongoose:', err.message);
+  dbConnected = false;
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('Mongoose desconectado do MongoDB');
+  dbConnected = false;
 });
 
 // Middleware para verificar o status da conexão com o banco de dados
