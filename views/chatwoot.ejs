@@ -290,28 +290,18 @@
       $('#agendamentoForm').on('submit', function(e) {
         e.preventDefault();
         
-        // Obter a data do input e ajustá-la para o fuso horário correto
+        // Obter a data exatamente como foi selecionada pelo usuário
         const dataInput = $('#dataAgendamento').val();
-        const dataObj = new Date(dataInput);
-        
-        // Calcular o offset do fuso horário em minutos
-        const offsetMinutos = dataObj.getTimezoneOffset();
-        console.log('Offset do fuso horário (minutos):', offsetMinutos);
-        
-        // Criar uma string de data no formato ISO mas com o fuso horário local
-        // Formato: YYYY-MM-DDTHH:MM:SS-03:00 (para Brasil)
-        const dataISO = dataInput.replace('T', ' ');
         
         const formData = {
           nome: $('#nome').val(),
           telefone: $('#telefone').val(),
           mensagem: $('#mensagem').val(),
           responsavel: $('#responsavel').val(),
-          dataAgendamento: dataISO // Enviar como string no formato local
+          dataAgendamento: dataInput // Enviar exatamente como foi selecionado
         };
         
-        console.log('Data original do input:', dataInput);
-        console.log('Data para envio (formato local):', dataISO);
+        console.log('Data selecionada pelo usuário:', dataInput);
         
         // Validar telefone
         const telefoneRegex = /^\(\d{2}\)\s\d{4,5}-\d{4}$/;

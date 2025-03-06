@@ -76,38 +76,19 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
     const isConnected = mongoose.connection.readyState === 1;
     console.log('API: Status da conexão MongoDB:', isConnected ? 'Conectado' : 'Desconectado');
     
-    // Ajustar a data para o fuso horário do Brasil
-    let dataAgendamento;
-    
-    // Verificar se a data está no formato ISO ou no formato local
-    if (req.body.dataAgendamento.includes('T')) {
-      // Formato ISO
-      dataAgendamento = new Date(req.body.dataAgendamento);
-    } else {
-      // Formato local (YYYY-MM-DD HH:MM)
-      const [dataParte, horaParte] = req.body.dataAgendamento.split(' ');
-      const [ano, mes, dia] = dataParte.split('-');
-      const [hora, minuto] = horaParte.split(':');
-      
-      // Criar data no fuso horário local (mês é 0-indexed em JavaScript)
-      dataAgendamento = new Date(ano, mes - 1, dia, hora, minuto);
-    }
-    
-    console.log('API: Data recebida (original):', req.body.dataAgendamento);
-    console.log('API: Data convertida (objeto):', dataAgendamento);
-    console.log('API: Data convertida (local string):', dataAgendamento.toString());
+    // Usar a data exatamente como foi enviada pelo formulário
+    console.log('API: Data recebida do formulário:', req.body.dataAgendamento);
     
     const novaMensagem = new Mensagem({
       nome: req.body.nome,
       telefone: req.body.telefone,
       mensagem: req.body.mensagem,
       responsavel: req.body.responsavel,
-      dataAgendamento: dataAgendamento,
+      dataAgendamento: req.body.dataAgendamento,
       criadoPor: req.usuario ? req.usuario.id : null
     });
 
     console.log('API: Objeto de mensagem criado:', novaMensagem);
-    console.log('API: Data de agendamento final:', novaMensagem.dataAgendamento);
     
     try {
       const mensagemSalva = await novaMensagem.save();
@@ -154,7 +135,7 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
         telefone: req.body.telefone,
         mensagem: req.body.mensagem,
         responsavel: req.body.responsavel,
-        dataAgendamento: dataAgendamento,
+        dataAgendamento: req.body.dataAgendamento,
         dataCriacao: new Date(),
         webhookEnviado: false,
         criadoPor: req.usuario ? req.usuario.id : null
@@ -208,7 +189,7 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
         telefone: req.body.telefone,
         mensagem: req.body.mensagem,
         responsavel: req.body.responsavel,
-        dataAgendamento: dataAgendamento,
+        dataAgendamento: req.body.dataAgendamento,
         dataCriacao: new Date(),
         webhookEnviado: false,
         criadoPor: req.usuario ? req.usuario.id : null

@@ -137,10 +137,8 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
     const isConnected = mongoose.connection.readyState === 1;
     console.log('Formulário: Status da conexão MongoDB:', isConnected ? 'Conectado' : 'Desconectado');
     
-    // Ajustar a data para o fuso horário do Brasil
-    const dataAgendamento = new Date(req.body.dataAgendamento);
-    console.log('Formulário: Data recebida (string):', req.body.dataAgendamento);
-    console.log('Formulário: Data convertida (objeto):', dataAgendamento);
+    // Usar a data exatamente como foi enviada pelo formulário
+    console.log('Formulário: Data recebida do formulário:', req.body.dataAgendamento);
     
     // Criar objeto de mensagem com o usuário atual como criador
     const novaMensagem = new Mensagem({
@@ -148,12 +146,11 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
       telefone: req.body.telefone,
       mensagem: req.body.mensagem,
       responsavel: req.body.responsavel,
-      dataAgendamento: dataAgendamento,
+      dataAgendamento: req.body.dataAgendamento,
       criadoPor: req.usuario ? req.usuario.id : null
     });
 
     console.log('Formulário: Objeto de mensagem criado:', novaMensagem);
-    console.log('Formulário: Data de agendamento final:', novaMensagem.dataAgendamento);
 
     let mensagemSalvaNoBanco = null;
     
@@ -179,7 +176,7 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
       telefone: req.body.telefone,
       mensagem: req.body.mensagem,
       responsavel: req.body.responsavel,
-      dataAgendamento: dataAgendamento,
+      dataAgendamento: req.body.dataAgendamento,
       dataCriacao: new Date(),
       webhookEnviado: false,
       criadoPor: req.usuario ? req.usuario.id : null
