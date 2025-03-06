@@ -200,9 +200,9 @@
         return `${ano}-${mes}-${dia}T${hora}:${minuto}`;
       }
       
-      // Definir data mínima como agora + 30 minutos (para dar tempo de processamento)
+      // Definir data mínima como agora + 5 minutos (tempo mínimo razoável)
       const agora = new Date();
-      agora.setMinutes(agora.getMinutes() + 30); // Adiciona 30 minutos
+      agora.setMinutes(agora.getMinutes() + 5); // Adiciona 5 minutos em vez de 30
       
       const dataMinima = formatarDataParaInput(agora);
       $('#dataAgendamento').attr('min', dataMinima);
@@ -315,12 +315,12 @@
         const dataAgendamento = new Date(dataInput);
         const agoraValidacao = new Date();
         
-        // Adicionar 10 minutos à hora atual para dar uma margem
-        agoraValidacao.setMinutes(agoraValidacao.getMinutes() + 10);
+        // Adicionar 5 minutos à hora atual para dar uma margem
+        agoraValidacao.setMinutes(agoraValidacao.getMinutes() + 5);
         
         if (dataAgendamento <= agoraValidacao) {
           $('#mensagemErro').removeClass('d-none');
-          $('#erroTexto').text('A data de agendamento deve ser pelo menos 10 minutos no futuro');
+          $('#erroTexto').text('A data de agendamento deve ser pelo menos 5 minutos no futuro');
           return;
         }
         
@@ -337,7 +337,7 @@
             
             // Definir data mínima novamente
             const agora = new Date();
-            agora.setMinutes(agora.getMinutes() + 30); // Adiciona 30 minutos
+            agora.setMinutes(agora.getMinutes() + 5); // Adiciona 5 minutos em vez de 30
             const dataMinima = formatarDataParaInput(agora);
             $('#dataAgendamento').val(dataMinima);
             
