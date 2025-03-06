@@ -130,38 +130,43 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
   }
 
   try {
-    if (res.locals.dbConnected) {
-      // Se o MongoDB estiver conectado, salvar no banco de dados
-      const novaMensagem = new Mensagem({
-        nome: req.body.nome,
-        telefone: req.body.telefone,
-        mensagem: req.body.mensagem,
-        responsavel: req.body.responsavel,
-        dataAgendamento: new Date(req.body.dataAgendamento)
-      });
+    // Criar objeto de mensagem com o usuário atual como criador
+    const novaMensagem = new Mensagem({
+      nome: req.body.nome,
+      telefone: req.body.telefone,
+      mensagem: req.body.mensagem,
+      responsavel: req.body.responsavel,
+      dataAgendamento: new Date(req.body.dataAgendamento),
+      criadoPor: req.usuario ? req.usuario.id : null
+    });
 
+    // Sempre tentar salvar no banco de dados primeiro
+    if (res.locals.dbConnected) {
       await novaMensagem.save();
-    } else {
-      // Se não, salvar no armazenamento local
-      const mensagens = lerMensagensLocais();
-      
-      const novaMensagem = {
-        _id: uuidv4(),
-        nome: req.body.nome,
-        telefone: req.body.telefone,
-        mensagem: req.body.mensagem,
-        responsavel: req.body.responsavel,
-        dataAgendamento: new Date(req.body.dataAgendamento),
-        dataCriacao: new Date(),
-        webhookEnviado: false
-      };
-      
-      mensagens.push(novaMensagem);
-      salvarMensagensLocais(mensagens);
-      
-      // Enviar webhook manualmente
+    } 
+    
+    // Também salvar localmente (independente do banco de dados)
+    const mensagens = lerMensagensLocais();
+    
+    const mensagemLocal = {
+      _id: novaMensagem._id || uuidv4(),
+      nome: req.body.nome,
+      telefone: req.body.telefone,
+      mensagem: req.body.mensagem,
+      responsavel: req.body.responsavel,
+      dataAgendamento: new Date(req.body.dataAgendamento),
+      dataCriacao: new Date(),
+      webhookEnviado: false,
+      criadoPor: req.usuario ? req.usuario.id : null
+    };
+    
+    mensagens.push(mensagemLocal);
+    salvarMensagensLocais(mensagens);
+    
+    // Enviar webhook manualmente se não estiver conectado ao banco
+    if (!res.locals.dbConnected) {
       const enviarWebhook = require('../utils/webhook');
-      await enviarWebhook(novaMensagem, 'criada');
+      await enviarWebhook(mensagemLocal, 'criada');
     }
     
     res.redirect('/mensagens');
@@ -180,23 +185,62 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
 // Rota para excluir uma mensagem
 router.delete('/mensagens/:id', async (req, res) => {
   try {
+    let mensagem;
+    let podeExcluir = false;
+    
     if (res.locals.dbConnected) {
-      // Se o MongoDB estiver conectado, excluir do banco de dados
-      await Mensagem.findOneAndDelete({ _id: req.params.id });
+      // Se o MongoDB estiver conectado, buscar a mensagem do banco de dados
+      mensagem = await Mensagem.findById(req.params.id);
+      
+      // Verificar se a mensagem existe
+      if (!mensagem) {
+        return res.status(404).render('error', { 
+          title: 'Erro',
+          message: 'Mensagem não encontrada'
+        });
+      }
+      
+      // Verificar se o usuário é admin ou o responsável pela mensagem
+      if (req.usuario.role === 'admin' || 
+          (mensagem.criadoPor && mensagem.criadoPor.toString() === req.usuario.id) || 
+          mensagem.responsavel === req.usuario.nome) {
+        podeExcluir = true;
+        await Mensagem.findOneAndDelete({ _id: req.params.id });
+      }
     } else {
-      // Se não, excluir do armazenamento local
+      // Se não, buscar do armazenamento local
       const mensagens = lerMensagensLocais();
       const mensagemIndex = mensagens.findIndex(m => m._id === req.params.id);
       
       if (mensagemIndex !== -1) {
-        const mensagemExcluida = mensagens[mensagemIndex];
-        mensagens.splice(mensagemIndex, 1);
-        salvarMensagensLocais(mensagens);
+        mensagem = mensagens[mensagemIndex];
         
-        // Enviar webhook manualmente
-        const enviarWebhook = require('../utils/webhook');
-        await enviarWebhook(mensagemExcluida, 'excluida');
+        // Verificar se o usuário é admin ou o responsável pela mensagem
+        if (req.usuario.role === 'admin' || 
+            (mensagem.criadoPor && mensagem.criadoPor === req.usuario.id) || 
+            mensagem.responsavel === req.usuario.nome) {
+          podeExcluir = true;
+          const mensagemExcluida = mensagens[mensagemIndex];
+          mensagens.splice(mensagemIndex, 1);
+          salvarMensagensLocais(mensagens);
+          
+          // Enviar webhook manualmente
+          const enviarWebhook = require('../utils/webhook');
+          await enviarWebhook(mensagemExcluida, 'excluida');
+        }
+      } else {
+        return res.status(404).render('error', { 
+          title: 'Erro',
+          message: 'Mensagem não encontrada'
+        });
       }
+    }
+    
+    if (!podeExcluir) {
+      return res.status(403).render('error', { 
+        title: 'Acesso Negado',
+        message: 'Você não tem permissão para excluir esta mensagem'
+      });
     }
     
     res.redirect('/mensagens');

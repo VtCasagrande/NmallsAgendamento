@@ -64,6 +64,10 @@ const mensagemSchema = new mongoose.Schema({
   webhookEnviado: {
     type: Boolean,
     default: false
+  },
+  criadoPor: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Usuario'
   }
 });
 
