@@ -23,7 +23,13 @@ const PORT = process.env.PORT || 3000;
 
 // Conectando ao MongoDB
 let dbConnected = false;
-mongoose.connect(process.env.MONGODB_URI, {
+// Adicionar log para depuração
+console.log('MONGODB_URI:', process.env.MONGODB_URI);
+
+// Usar uma string de conexão alternativa se a variável de ambiente não estiver definida
+const mongoURI = process.env.MONGODB_URI || 'mongodb://admin:senha_admin@mongodb-agendamento:27017/agendamento?authSource=admin';
+
+mongoose.connect(mongoURI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
   serverSelectionTimeoutMS: 5000 // Timeout após 5 segundos
