@@ -19,6 +19,10 @@ const validacaoMensagem = [
     .isLength({ max: 500 }).withMessage('Mensagem não pode ter mais de 500 caracteres')
     .trim(),
   
+  body('responsavel')
+    .notEmpty().withMessage('Responsável é obrigatório')
+    .trim(),
+  
   body('dataAgendamento')
     .notEmpty().withMessage('Data de agendamento é obrigatória')
     .custom((value) => {
@@ -69,6 +73,7 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
       nome: req.body.nome,
       telefone: req.body.telefone,
       mensagem: req.body.mensagem,
+      responsavel: req.body.responsavel,
       dataAgendamento: new Date(req.body.dataAgendamento)
     });
 
@@ -97,6 +102,7 @@ router.put('/mensagens/:id', validacaoMensagem, async (req, res) => {
     mensagem.nome = req.body.nome;
     mensagem.telefone = req.body.telefone;
     mensagem.mensagem = req.body.mensagem;
+    mensagem.responsavel = req.body.responsavel;
     mensagem.dataAgendamento = new Date(req.body.dataAgendamento);
 
     const mensagemAtualizada = await mensagem.save();

@@ -68,6 +68,22 @@
               </div>
             </div>
 
+            <div class="mb-3">
+              <label for="responsavel" class="form-label">Responsável</label>
+              <input 
+                type="text" 
+                class="form-control <%= errors.find(e => e.param === 'responsavel') ? 'is-invalid' : '' %>" 
+                id="responsavel" 
+                name="responsavel" 
+                value="<%= usuario ? usuario.nome : (mensagem.responsavel || '') %>" 
+                required
+                <%= usuario ? 'readonly' : '' %>
+              >
+              <div class="invalid-feedback">
+                Por favor, informe o responsável.
+              </div>
+            </div>
+
             <div class="mb-4">
               <label for="dataAgendamento" class="form-label">Data e Hora de Agendamento</label>
               <input 

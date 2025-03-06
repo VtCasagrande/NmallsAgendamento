@@ -1,0 +1,5 @@
+# Adicionar o repositório remoto (substitua a URL pelo seu repositório)
+git remote add origin https://github.com/seu-usuario/agendamento-mensagens.git
+
+# Enviar o código para o repositório remoto
+git push -u origin main 

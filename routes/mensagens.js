@@ -51,6 +51,10 @@ const validacaoMensagem = [
     .isLength({ max: 500 }).withMessage('Mensagem não pode ter mais de 500 caracteres')
     .trim(),
   
+  body('responsavel')
+    .notEmpty().withMessage('Responsável é obrigatório')
+    .trim(),
+  
   body('dataAgendamento')
     .notEmpty().withMessage('Data de agendamento é obrigatória')
     .custom((value) => {
@@ -127,6 +131,7 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
         nome: req.body.nome,
         telefone: req.body.telefone,
         mensagem: req.body.mensagem,
+        responsavel: req.body.responsavel,
         dataAgendamento: new Date(req.body.dataAgendamento)
       });
 
@@ -140,6 +145,7 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
         nome: req.body.nome,
         telefone: req.body.telefone,
         mensagem: req.body.mensagem,
+        responsavel: req.body.responsavel,
         dataAgendamento: new Date(req.body.dataAgendamento),
         dataCriacao: new Date(),
         webhookEnviado: false

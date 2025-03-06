@@ -48,6 +48,11 @@ const mensagemSchema = new mongoose.Schema({
     trim: true,
     maxlength: [500, 'Mensagem não pode ter mais de 500 caracteres']
   },
+  responsavel: {
+    type: String,
+    required: [true, 'Responsável é obrigatório'],
+    trim: true
+  },
   dataAgendamento: {
     type: Date,
     required: [true, 'Data de agendamento é obrigatória']
@@ -94,6 +99,7 @@ async function enviarWebhook(mensagem, acao) {
         nome: mensagem.nome,
         telefone: mensagem.telefone,
         mensagem: mensagem.mensagem,
+        responsavel: mensagem.responsavel,
         dataAgendamento: mensagem.dataAgendamento,
         dataCriacao: mensagem.dataCriacao
       },

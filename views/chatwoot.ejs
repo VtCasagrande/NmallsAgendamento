@@ -29,6 +29,9 @@
       color: white;
       border-radius: 8px 8px 0 0 !important;
       padding: 0.75rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
     .form-control:focus {
       border-color: #1f93ff;
@@ -52,6 +55,13 @@
       color: #1f93ff;
       margin-bottom: 0.5rem;
     }
+    .nav-link {
+      color: white;
+      text-decoration: none;
+    }
+    .nav-link:hover {
+      color: rgba(255, 255, 255, 0.8);
+    }
   </style>
 </head>
 <body>
@@ -73,6 +83,9 @@
     <div class="card">
       <div class="card-header">
         <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Agendar Mensagem</h5>
+        <a href="/mensagens" target="_blank" class="nav-link">
+          <i class="fas fa-external-link-alt me-1"></i>Menu Principal
+        </a>
       </div>
       <div class="card-body">
         <form id="agendamentoForm">
@@ -89,14 +102,17 @@
 
           <div class="mb-3">
             <label for="telefone" class="form-label">Telefone</label>
-            <input 
-              type="text" 
-              class="form-control telefone" 
-              id="telefone" 
-              name="telefone" 
-              placeholder="(99) 99999-9999"
-              required
-            >
+            <div class="input-group">
+              <span class="input-group-text">+55</span>
+              <input 
+                type="text" 
+                class="form-control telefone" 
+                id="telefone" 
+                name="telefone" 
+                placeholder="(99) 99999-9999"
+                required
+              >
+            </div>
             <div class="form-text">
               Formato: (99) 99999-9999
             </div>
@@ -115,6 +131,17 @@
             <div class="form-text">
               <span id="contador">0</span>/500 caracteres
             </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="responsavel" class="form-label">Responsável</label>
+            <input 
+              type="text" 
+              class="form-control" 
+              id="responsavel" 
+              name="responsavel" 
+              required
+            >
           </div>
 
           <div class="mb-3">
@@ -205,6 +232,11 @@
               }
             }
             
+            // Preencher o campo de responsável com o nome do agente atual
+            if (currentAgent && currentAgent.name) {
+              $('#responsavel').val(currentAgent.name);
+            }
+            
             // Preencher mensagem com informações da conversa
             if (conversation && conversation.messages && conversation.messages.length > 0) {
               // Opcionalmente, você pode preencher a mensagem com o último conteúdo da conversa
@@ -233,6 +265,7 @@
           nome: $('#nome').val(),
           telefone: $('#telefone').val(),
           mensagem: $('#mensagem').val(),
+          responsavel: $('#responsavel').val(),
           dataAgendamento: $('#dataAgendamento').val()
         };
         

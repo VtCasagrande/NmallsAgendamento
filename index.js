@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const path = require('path');
 const methodOverride = require('method-override');
 const fs = require('fs');
+const cookieParser = require('cookie-parser');
 
 // Verificar se o diretório de dados existe, se não, criar
 const dataDir = path.join(__dirname, 'data');
@@ -16,6 +17,7 @@ const mensagensRoutes = require('./routes/mensagens');
 const apiRoutes = require('./routes/api');
 const configuracoesRoutes = require('./routes/configuracoes');
 const chatwootRoutes = require('./routes/chatwoot');
+const { router: authRoutes, autenticar } = require('./routes/auth');
 
 // Inicializando o app
 const app = express();
@@ -56,6 +58,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(methodOverride('_method'));
+app.use(cookieParser());
 
 // Middleware para formatar data e hora para exibição
 app.use((req, res, next) => {
@@ -72,11 +75,31 @@ app.use((req, res, next) => {
   next();
 });
 
-// Rotas
-app.use('/', mensagensRoutes);
+// Middleware para disponibilizar informações do usuário para as views
+app.use((req, res, next) => {
+  const token = req.cookies.token;
+  if (token) {
+    try {
+      const jwt = require('jsonwebtoken');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'segredo_temporario');
+      res.locals.usuario = decoded;
+    } catch (error) {
+      res.locals.usuario = null;
+    }
+  } else {
+    res.locals.usuario = null;
+  }
+  next();
+});
+
+// Rotas de autenticação (não protegidas)
+app.use('/', authRoutes);
+
+// Rotas protegidas por autenticação
+app.use('/', autenticar, mensagensRoutes);
 app.use('/api', apiRoutes);
-app.use('/', configuracoesRoutes);
-app.use('/', chatwootRoutes);
+app.use('/', autenticar, configuracoesRoutes);
+app.use('/', chatwootRoutes); // Chatwoot não é protegido para permitir integração
 
 // Rota para página inicial (redirecionamento)
 app.get('/', (req, res) => {

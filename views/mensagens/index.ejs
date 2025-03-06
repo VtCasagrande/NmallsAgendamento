@@ -31,6 +31,7 @@
             <th>Nome</th>
             <th>Telefone</th>
             <th>Mensagem</th>
+            <th>Responsável</th>
             <th>Data de Agendamento</th>
             <th>Ações</th>
           </tr>
@@ -47,6 +48,7 @@
                   <%= mensagem.mensagem %>
                 <% } %>
               </td>
+              <td><%= mensagem.responsavel || 'Não informado' %></td>
               <td>
                 <%= moment(mensagem.dataAgendamento).format('DD/MM/YYYY HH:mm') %>
               </td>
