@@ -186,6 +186,27 @@
   
   <script>
     $(document).ready(function() {
+      // Verificar se o usuário está autenticado
+      const checkAuth = function() {
+        $.ajax({
+          url: '/api/auth/check',
+          type: 'GET',
+          success: function(response) {
+            if (!response.autenticado) {
+              // Redirecionar para a página de login
+              window.location.href = '/login?redirect=/chatwoot';
+            }
+          },
+          error: function() {
+            // Em caso de erro, também redirecionar para o login
+            window.location.href = '/login?redirect=/chatwoot';
+          }
+        });
+      };
+      
+      // Executar a verificação de autenticação
+      checkAuth();
+
       // Função para formatar a data no formato aceito pelo input date
       function formatarDataParaInput(data) {
         const ano = data.getFullYear();

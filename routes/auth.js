@@ -38,7 +38,14 @@ const verificarAdmin = (req, res, next) => {
 
 // Rota para a página de login
 router.get('/login', (req, res) => {
-  res.render('auth/login', { title: 'Login', error: null });
+  // Capturar o parâmetro de redirecionamento, se existir
+  const redirect = req.query.redirect || '/mensagens';
+  
+  res.render('auth/login', { 
+    title: 'Login', 
+    error: null,
+    redirect
+  });
 });
 
 // Rota para a página de registro
@@ -58,7 +65,7 @@ router.get('/admin-registro', (req, res) => {
 // Rota para processar o login
 router.post('/login', async (req, res) => {
   try {
-    const { email, senha } = req.body;
+    const { email, senha, redirect } = req.body;
     
     // Buscar o usuário pelo email
     const usuario = await Usuario.findOne({ email });
@@ -67,7 +74,8 @@ router.post('/login', async (req, res) => {
     if (!usuario) {
       return res.render('auth/login', { 
         title: 'Login', 
-        error: 'Email ou senha inválidos' 
+        error: 'Email ou senha inválidos',
+        redirect: redirect || '/mensagens'
       });
     }
     
@@ -76,7 +84,8 @@ router.post('/login', async (req, res) => {
     if (!senhaCorreta) {
       return res.render('auth/login', { 
         title: 'Login', 
-        error: 'Email ou senha inválidos' 
+        error: 'Email ou senha inválidos',
+        redirect: redirect || '/mensagens'
       });
     }
     
@@ -106,14 +115,15 @@ router.post('/login', async (req, res) => {
     req.usuario = { id: usuario._id };
     await registrarLog(req, 'login');
     
-    // Redirecionar para a página principal
-    res.redirect('/mensagens');
+    // Redirecionar para a página solicitada ou para a página principal
+    res.redirect(redirect || '/mensagens');
     
   } catch (error) {
     console.error('Erro no login:', error);
     res.render('auth/login', { 
       title: 'Login', 
-      error: 'Ocorreu um erro ao fazer login. Tente novamente.' 
+      error: 'Ocorreu um erro ao fazer login. Tente novamente.',
+      redirect: req.body.redirect || '/mensagens'
     });
   }
 });

@@ -9,7 +9,18 @@ const logSchema = new mongoose.Schema({
   acao: {
     type: String,
     required: true,
-    enum: ['login', 'logout', 'criar_mensagem', 'excluir_mensagem', 'alterar_configuracao', 'criar_usuario', 'alterar_usuario']
+    enum: [
+      'login', 
+      'logout', 
+      'criar_mensagem', 
+      'excluir_mensagem', 
+      'marcar_mensagem_enviada', 
+      'alterar_configuracao', 
+      'criar_usuario', 
+      'alterar_usuario',
+      'acessar_chatwoot',
+      'agendar_mensagem_chatwoot'
+    ]
   },
   detalhes: {
     type: Object

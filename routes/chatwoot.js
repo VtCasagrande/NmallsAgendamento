@@ -1,8 +1,17 @@
 const express = require('express');
 const router = express.Router();
+const { registrarLog } = require('../utils/logger');
 
 // Rota para o Chatwoot Dashboard App
 router.get('/chatwoot', (req, res) => {
+  // Registrar log de acesso ao Chatwoot
+  if (req.usuario) {
+    registrarLog(req, 'acessar_chatwoot', { 
+      usuario: req.usuario.nome,
+      role: req.usuario.role
+    });
+  }
+  
   res.render('chatwoot');
 });
 

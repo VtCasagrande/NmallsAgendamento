@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const mongoose = require('mongoose');
+const { registrarLog } = require('../utils/logger');
 
 // Configurar o moment.js para usar o fuso horário do Brasil
 moment.locale('pt-br');
@@ -203,6 +204,15 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
         
         console.log('Formulário: Mensagem salva com sucesso no MongoDB:', mensagemSalvaNoBanco._id);
         console.log('Formulário: Data salva no MongoDB (sem modificação):', mensagemSalvaNoBanco.dataAgendamento);
+        
+        // Registrar log de criação de mensagem
+        registrarLog(req, 'criar_mensagem', {
+          mensagemId: mensagemSalvaNoBanco._id,
+          nome: mensagemSalvaNoBanco.nome,
+          telefone: mensagemSalvaNoBanco.telefone,
+          dataAgendamento: mensagemSalvaNoBanco.dataAgendamento,
+          responsavel: mensagemSalvaNoBanco.responsavel
+        });
       } catch (saveError) {
         console.error('Formulário: Erro ao salvar no MongoDB:', saveError);
       }
@@ -273,6 +283,16 @@ router.delete('/mensagens/:id', async (req, res) => {
           (mensagem.criadoPor && mensagem.criadoPor.toString() === req.usuario.id) || 
           mensagem.responsavel === req.usuario.nome) {
         podeExcluir = true;
+        
+        // Registrar log de exclusão de mensagem
+        registrarLog(req, 'excluir_mensagem', {
+          mensagemId: mensagem._id,
+          nome: mensagem.nome,
+          telefone: mensagem.telefone,
+          dataAgendamento: mensagem.dataAgendamento,
+          responsavel: mensagem.responsavel
+        });
+        
         await Mensagem.findOneAndDelete({ _id: req.params.id });
       }
     } else {
@@ -295,6 +315,15 @@ router.delete('/mensagens/:id', async (req, res) => {
           // Enviar webhook manualmente
           const enviarWebhook = require('../utils/webhook');
           await enviarWebhook(mensagemExcluida, 'excluida');
+          
+          // Registrar log de exclusão de mensagem
+          registrarLog(req, 'excluir_mensagem', {
+            mensagemId: mensagemExcluida._id,
+            nome: mensagemExcluida.nome,
+            telefone: mensagemExcluida.telefone,
+            dataAgendamento: mensagemExcluida.dataAgendamento,
+            responsavel: mensagemExcluida.responsavel
+          });
         }
       } else {
         return res.status(404).render('error', { 
@@ -324,17 +353,54 @@ router.delete('/mensagens/:id', async (req, res) => {
 // Rota para marcar mensagem como enviada
 router.post('/mensagens/:id/marcar-enviada', async (req, res) => {
   try {
+    let mensagem;
+    
     if (res.locals.dbConnected) {
-      // Se o MongoDB estiver conectado, atualizar no banco de dados
-      await Mensagem.findByIdAndUpdate(req.params.id, { mensagemEnviada: true });
+      // Se o MongoDB estiver conectado, buscar a mensagem do banco de dados
+      mensagem = await Mensagem.findById(req.params.id);
+      
+      if (!mensagem) {
+        return res.status(404).render('error', { 
+          title: 'Erro',
+          message: 'Mensagem não encontrada'
+        });
+      }
+      
+      // Atualizar a mensagem
+      mensagem.mensagemEnviada = true;
+      await mensagem.save();
+      
+      // Registrar log de marcação de mensagem como enviada
+      registrarLog(req, 'marcar_mensagem_enviada', {
+        mensagemId: mensagem._id,
+        nome: mensagem.nome,
+        telefone: mensagem.telefone,
+        dataAgendamento: mensagem.dataAgendamento,
+        responsavel: mensagem.responsavel
+      });
     } else {
       // Se não, atualizar no armazenamento local
       const mensagens = lerMensagensLocais();
       const mensagemIndex = mensagens.findIndex(m => m._id === req.params.id);
       
       if (mensagemIndex !== -1) {
+        mensagem = mensagens[mensagemIndex];
         mensagens[mensagemIndex].mensagemEnviada = true;
         salvarMensagensLocais(mensagens);
+        
+        // Registrar log de marcação de mensagem como enviada
+        registrarLog(req, 'marcar_mensagem_enviada', {
+          mensagemId: mensagem._id,
+          nome: mensagem.nome,
+          telefone: mensagem.telefone,
+          dataAgendamento: mensagem.dataAgendamento,
+          responsavel: mensagem.responsavel
+        });
+      } else {
+        return res.status(404).render('error', { 
+          title: 'Erro',
+          message: 'Mensagem não encontrada'
+        });
       }
     }
     

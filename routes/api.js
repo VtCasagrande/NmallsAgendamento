@@ -101,6 +101,18 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
       console.log('API: Mensagem salva com sucesso no MongoDB:', mensagemSalva._id);
       console.log('API: Data salva no MongoDB (sem modificação):', mensagemSalva.dataAgendamento);
       
+      // Registrar log de criação de mensagem via Chatwoot
+      if (req.usuario) {
+        const { registrarLog } = require('../utils/logger');
+        registrarLog(req, 'agendar_mensagem_chatwoot', {
+          mensagemId: mensagemSalva._id,
+          nome: mensagemSalva.nome,
+          telefone: mensagemSalva.telefone,
+          dataAgendamento: mensagemSalva.dataAgendamento,
+          responsavel: mensagemSalva.responsavel
+        });
+      }
+      
       // Também salvar localmente para redundância
       const fs = require('fs');
       const path = require('path');
@@ -263,6 +275,23 @@ router.delete('/mensagens/:id', async (req, res) => {
     console.error(err);
     res.status(500).json({ error: 'Erro ao excluir mensagem' });
   }
+});
+
+// GET - Verificar autenticação
+router.get('/auth/check', (req, res) => {
+  // Verificar se o usuário está autenticado
+  const autenticado = !!req.usuario;
+  
+  // Retornar o status de autenticação
+  res.json({
+    autenticado,
+    usuario: autenticado ? {
+      id: req.usuario.id,
+      nome: req.usuario.nome,
+      email: req.usuario.email,
+      role: req.usuario.role
+    } : null
+  });
 });
 
 module.exports = router; 
