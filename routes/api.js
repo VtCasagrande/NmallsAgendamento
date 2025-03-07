@@ -74,6 +74,12 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
   try {
     console.log('API: Recebendo nova mensagem:', req.body);
     
+    // Verificar se a requisição vem do Chatwoot
+    const referer = req.headers.referer || '';
+    const isFromChatwoot = referer.includes('chat.nmalls.click') || 
+                           req.headers['x-from-chatwoot'] || 
+                           req.query.chatwoot_source === 'true';
+    
     // Verificar conexão com o MongoDB
     const isConnected = mongoose.connection.readyState === 1;
     console.log('API: Status da conexão MongoDB:', isConnected ? 'Conectado' : 'Desconectado');
@@ -109,8 +115,12 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
           nome: mensagemSalva.nome,
           telefone: mensagemSalva.telefone,
           dataAgendamento: mensagemSalva.dataAgendamento,
-          responsavel: mensagemSalva.responsavel
+          responsavel: mensagemSalva.responsavel,
+          isFromChatwoot: isFromChatwoot
         });
+      } else if (isFromChatwoot) {
+        // Se não tiver usuário mas vier do Chatwoot, registrar log sem usuário
+        console.log('API: Mensagem criada via Chatwoot sem usuário autenticado');
       }
       
       // Também salvar localmente para redundância

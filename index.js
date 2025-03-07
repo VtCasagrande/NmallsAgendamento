@@ -169,7 +169,7 @@ app.use('/', autenticar, mensagensRoutes);
 app.use('/api', apiRoutes);
 app.use('/', autenticar, configuracoesRoutes);
 app.use('/admin', adminRoutes);
-app.use('/', autenticar, chatwootRoutes); // Aplicando autenticação para o Chatwoot
+app.use('/', chatwootRoutes); // Chatwoot sem autenticação obrigatória
 
 // Rota para página inicial (redirecionamento)
 app.get('/', (req, res) => {

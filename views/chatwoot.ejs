@@ -186,22 +186,27 @@
   
   <script>
     $(document).ready(function() {
-      // Verificar se o usuário está autenticado
+      // Verificar se o acesso vem do Chatwoot
+      const isFromChatwoot = <%= isFromChatwoot ? 'true' : 'false' %>;
+      
+      // Verificar se o usuário está autenticado apenas se não vier do Chatwoot
       const checkAuth = function() {
-        $.ajax({
-          url: '/api/auth/check',
-          type: 'GET',
-          success: function(response) {
-            if (!response.autenticado) {
-              // Redirecionar para a página de login
+        if (!isFromChatwoot) {
+          $.ajax({
+            url: '/api/auth/check',
+            type: 'GET',
+            success: function(response) {
+              if (!response.autenticado) {
+                // Redirecionar para a página de login
+                window.location.href = '/login?redirect=/chatwoot';
+              }
+            },
+            error: function() {
+              // Em caso de erro, também redirecionar para o login
               window.location.href = '/login?redirect=/chatwoot';
             }
-          },
-          error: function() {
-            // Em caso de erro, também redirecionar para o login
-            window.location.href = '/login?redirect=/chatwoot';
-          }
-        });
+          });
+        }
       };
       
       // Executar a verificação de autenticação
