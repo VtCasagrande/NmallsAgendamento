@@ -30,52 +30,37 @@ const resetRoutes = require('./routes/reset');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Conectando ao MongoDB
-let dbConnected = false;
-// Adicionar log para depuração
-console.log('MONGODB_URI:', process.env.MONGODB_URI);
-
-// Usar uma string de conexão alternativa se a variável de ambiente não estiver definida
-const mongoURI = process.env.MONGODB_URI || 'mongodb://admin:senha_admin@mongodb-agendamento:27017/agendamento?authSource=admin';
-
-console.log('Tentando conectar ao MongoDB com URI:', mongoURI);
-
-mongoose.connect(mongoURI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 30000, // Aumentar timeout para 30 segundos
-  connectTimeoutMS: 30000,
-  socketTimeoutMS: 45000
-})
-.then(() => {
-  console.log('Conectado ao MongoDB com sucesso');
-  dbConnected = true;
-})
-.catch(err => {
-  console.error('Erro ao conectar ao MongoDB:', err.message);
-  console.error('Detalhes do erro:', err);
-  console.log('O aplicativo continuará funcionando com armazenamento local.');
-});
+// Conectar ao MongoDB
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/agendamento')
+  .then(() => {
+    console.log('Conectado ao MongoDB');
+    global.mongodbConnected = true;
+  })
+  .catch(err => {
+    console.error('Erro ao conectar ao MongoDB:', err.message);
+    console.log('Continuando com armazenamento local...');
+    global.mongodbConnected = false;
+  });
 
 // Adicionar evento de conexão para monitorar o estado da conexão
 mongoose.connection.on('connected', () => {
   console.log('Mongoose conectado ao MongoDB');
-  dbConnected = true;
+  global.mongodbConnected = true;
 });
 
 mongoose.connection.on('error', (err) => {
   console.error('Erro na conexão do Mongoose:', err.message);
-  dbConnected = false;
+  global.mongodbConnected = false;
 });
 
 mongoose.connection.on('disconnected', () => {
   console.log('Mongoose desconectado do MongoDB');
-  dbConnected = false;
+  global.mongodbConnected = false;
 });
 
 // Middleware para verificar o status da conexão com o banco de dados
 app.use((req, res, next) => {
-  res.locals.dbConnected = dbConnected;
+  res.locals.dbConnected = global.mongodbConnected;
   next();
 });
 
@@ -186,7 +171,7 @@ app.use('/', autenticar, mensagensRoutes);
 app.use('/api', apiRoutes);
 app.use('/', autenticar, configuracoesRoutes);
 app.use('/admin', adminRoutes);
-app.use('/', chatwootRoutes);
+app.use('/chatwoot', chatwootRoutes);
 
 // Rota para página inicial (redirecionamento)
 app.get('/', (req, res) => {
