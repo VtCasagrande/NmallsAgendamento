@@ -185,181 +185,239 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   
   <script>
-    $(document).ready(function() {
-      // Verificar se o acesso vem do Chatwoot ou se o usuário está autenticado
-      const isFromChatwoot = <%= isFromChatwoot ? 'true' : 'false' %>;
-      const usuarioAutenticado = <%= usuario ? 'true' : 'false' %>;
-      
-      // Se não vier do Chatwoot e não estiver autenticado, redirecionar para login
-      if (!isFromChatwoot && !usuarioAutenticado) {
-        window.location.href = '/login?redirect=/chatwoot';
-      }
-
-      // Função para formatar a data no formato aceito pelo input date
-      function formatarDataParaInput(data) {
-        const ano = data.getFullYear();
-        const mes = String(data.getMonth() + 1).padStart(2, '0');
-        const dia = String(data.getDate()).padStart(2, '0');
+    document.addEventListener('DOMContentLoaded', function() {
+      try {
+        // Verificar se o acesso vem do Chatwoot ou se o usuário está autenticado
+        const isFromChatwoot = <%= isFromChatwoot ? 'true' : 'false' %>;
+        const usuarioAutenticado = <%= usuario ? 'true' : 'false' %>;
         
-        return `${ano}-${mes}-${dia}`;
-      }
-      
-      // Definir data mínima como hoje
-      const hoje = new Date();
-      const dataMinima = formatarDataParaInput(hoje);
-      $('#dataAgendamento').attr('min', dataMinima);
-      $('#dataAgendamento').val(dataMinima);
+        // Se não vier do Chatwoot e não estiver autenticado, redirecionar para login
+        if (!isFromChatwoot && !usuarioAutenticado) {
+          window.location.href = '/login?redirect=/chatwoot';
+          return;
+        }
 
-      // Máscara para o campo de telefone
-      $('.telefone').mask('(00) 00000-0000', {
-        placeholder: '(99) 99999-9999'
-      });
-
-      // Contador de caracteres para o campo de mensagem
-      const mensagemTextarea = $('#mensagem');
-      const contador = $('#contador');
-
-      mensagemTextarea.on('input', function() {
-        contador.text($(this).val().length);
-      });
-
-      // Listener para receber dados do Chatwoot
-      window.addEventListener("message", function(event) {
-        try {
-          const eventData = JSON.parse(event.data);
+        // Função para formatar a data no formato aceito pelo input date
+        function formatarDataParaInput(data) {
+          const ano = data.getFullYear();
+          const mes = String(data.getMonth() + 1).padStart(2, '0');
+          const dia = String(data.getDate()).padStart(2, '0');
           
-          if (eventData.event === "appContext") {
-            const { conversation, contact, currentAgent } = eventData.data;
+          return `${ano}-${mes}-${dia}`;
+        }
+        
+        // Definir data mínima como hoje
+        const hoje = new Date();
+        const dataMinima = formatarDataParaInput(hoje);
+        
+        const dataAgendamentoInput = document.getElementById('dataAgendamento');
+        if (dataAgendamentoInput) {
+          dataAgendamentoInput.setAttribute('min', dataMinima);
+          dataAgendamentoInput.value = dataMinima;
+        }
+
+        // Inicializar máscara para o campo de telefone se jQuery estiver disponível
+        if (typeof $ !== 'undefined' && $.fn && $.fn.mask) {
+          $('.telefone').mask('(00) 00000-0000', {
+            placeholder: '(99) 99999-9999'
+          });
+        }
+
+        // Contador de caracteres para o campo de mensagem
+        const mensagemTextarea = document.getElementById('mensagem');
+        const contador = document.getElementById('contador');
+
+        if (mensagemTextarea && contador) {
+          mensagemTextarea.addEventListener('input', function() {
+            contador.textContent = this.value.length;
+          });
+        }
+
+        // Listener para receber dados do Chatwoot
+        function handleChatwootMessage(event) {
+          try {
+            if (!event.data) return;
             
-            // Preencher informações do contato
-            if (contact) {
-              $('#contactInfo').removeClass('d-none');
-              $('#contactName').text(contact.name || '-');
-              $('#contactPhone').text(contact.phone_number || '-');
-              $('#contactEmail').text(contact.email || '-');
-              $('#contactId').text(contact.id || '-');
+            let eventData;
+            if (typeof event.data === 'string') {
+              eventData = JSON.parse(event.data);
+            } else {
+              eventData = event.data;
+            }
+            
+            if (eventData.event === "appContext") {
+              const conversation = eventData.data.conversation;
+              const contact = eventData.data.contact;
+              const currentAgent = eventData.data.currentAgent;
               
-              // Preencher automaticamente o formulário
-              if (contact.name) $('#nome').val(contact.name);
-              if (contact.phone_number) {
-                // Processar o número de telefone corretamente
-                let phone = contact.phone_number.replace(/\D/g, '');
+              // Preencher informações do contato
+              if (contact) {
+                const contactInfo = document.getElementById('contactInfo');
+                if (contactInfo) contactInfo.classList.remove('d-none');
                 
-                // Remover o código do país se já estiver presente
-                if (phone.startsWith('55') && phone.length > 10) {
-                  phone = phone.substring(2);
-                }
+                const contactName = document.getElementById('contactName');
+                if (contactName) contactName.textContent = contact.name || '-';
                 
-                // Formatar o número no padrão brasileiro
-                if (phone.length >= 10) {
-                  const formattedPhone = phone.length === 11 
-                    ? `(${phone.substring(0, 2)}) ${phone.substring(2, 7)}-${phone.substring(7)}`
-                    : `(${phone.substring(0, 2)}) ${phone.substring(2, 6)}-${phone.substring(6)}`;
-                  $('#telefone').val(formattedPhone);
-                } else {
-                  // Se não conseguir formatar, usar o número original
-                  $('#telefone').val(contact.phone_number);
+                const contactPhone = document.getElementById('contactPhone');
+                if (contactPhone) contactPhone.textContent = contact.phone_number || '-';
+                
+                const contactEmail = document.getElementById('contactEmail');
+                if (contactEmail) contactEmail.textContent = contact.email || '-';
+                
+                const contactId = document.getElementById('contactId');
+                if (contactId) contactId.textContent = contact.id || '-';
+                
+                // Preencher automaticamente o formulário
+                const nomeInput = document.getElementById('nome');
+                if (nomeInput && contact.name) nomeInput.value = contact.name;
+                
+                const telefoneInput = document.getElementById('telefone');
+                if (telefoneInput && contact.phone_number) {
+                  // Processar o número de telefone corretamente
+                  let phone = contact.phone_number.replace(/\D/g, '');
+                  
+                  // Remover o código do país se já estiver presente
+                  if (phone.startsWith('55') && phone.length > 10) {
+                    phone = phone.substring(2);
+                  }
+                  
+                  // Formatar o número no padrão brasileiro
+                  if (phone.length >= 10) {
+                    const formattedPhone = phone.length === 11 
+                      ? `(${phone.substring(0, 2)}) ${phone.substring(2, 7)}-${phone.substring(7)}`
+                      : `(${phone.substring(0, 2)}) ${phone.substring(2, 6)}-${phone.substring(6)}`;
+                    telefoneInput.value = formattedPhone;
+                  } else {
+                    // Se não conseguir formatar, usar o número original
+                    telefoneInput.value = contact.phone_number;
+                  }
                 }
               }
+              
+              // Preencher o campo de responsável com o nome do agente atual
+              const responsavelInput = document.getElementById('responsavel');
+              if (responsavelInput && currentAgent && currentAgent.name) {
+                responsavelInput.value = currentAgent.name;
+              }
             }
-            
-            // Preencher o campo de responsável com o nome do agente atual
-            if (currentAgent && currentAgent.name) {
-              $('#responsavel').val(currentAgent.name);
-            }
-            
-            // Preencher mensagem com informações da conversa
-            if (conversation && conversation.messages && conversation.messages.length > 0) {
-              // Opcionalmente, você pode preencher a mensagem com o último conteúdo da conversa
-              // $('#mensagem').val(`Referente à sua mensagem: "${conversation.messages[0].content}"`);
-            }
+          } catch (error) {
+            console.error("Erro ao processar mensagem do Chatwoot:", error);
           }
-        } catch (error) {
-          console.error("Erro ao processar mensagem do Chatwoot:", error);
         }
-      });
 
-      // Solicitar dados do Chatwoot ao carregar a página
-      setTimeout(() => {
-        try {
-          window.parent.postMessage('chatwoot-dashboard-app:fetch-info', '*');
-        } catch (error) {
-          console.error("Erro ao solicitar dados do Chatwoot:", error);
-        }
-      }, 1000);
+        // Adicionar o listener de mensagens
+        window.addEventListener("message", handleChatwootMessage);
 
-      // Envio do formulário
-      $('#agendamentoForm').on('submit', function(e) {
-        e.preventDefault();
-        
-        // Obter a data exatamente como foi selecionada pelo usuário
-        const dataInput = $('#dataAgendamento').val();
-        
-        const formData = {
-          nome: $('#nome').val(),
-          telefone: $('#telefone').val(),
-          mensagem: $('#mensagem').val(),
-          responsavel: $('#responsavel').val(),
-          dataAgendamento: dataInput // Enviar apenas a data
-        };
-        
-        console.log('Data selecionada pelo usuário:', dataInput);
-        
-        // Validar telefone
-        const telefoneRegex = /^\(\d{2}\)\s\d{4,5}-\d{4}$/;
-        if (!telefoneRegex.test(formData.telefone)) {
-          $('#mensagemErro').removeClass('d-none');
-          $('#erroTexto').text('Telefone inválido. Use o formato (99) 99999-9999');
-          return;
-        }
-        
-        // Validar data de agendamento
-        const dataAgendamento = new Date(dataInput);
-        const hoje = new Date();
-        hoje.setHours(0, 0, 0, 0); // Zerar horas, minutos, segundos e milissegundos
-        
-        if (dataAgendamento < hoje) {
-          $('#mensagemErro').removeClass('d-none');
-          $('#erroTexto').text('A data de agendamento deve ser hoje ou no futuro');
-          return;
-        }
-        
-        // Enviar para a API
-        $.ajax({
-          url: '/api/mensagens',
-          type: 'POST',
-          contentType: 'application/json',
-          data: JSON.stringify(formData),
-          success: function(response) {
-            $('#mensagemSucesso').removeClass('d-none');
-            $('#mensagemErro').addClass('d-none');
-            $('#agendamentoForm')[0].reset();
-            
-            // Definir data mínima novamente
-            const hoje = new Date();
-            const dataMinima = formatarDataParaInput(hoje);
-            $('#dataAgendamento').val(dataMinima);
-            
-            // Esconder mensagem de sucesso após 3 segundos
-            setTimeout(() => {
-              $('#mensagemSucesso').addClass('d-none');
-            }, 3000);
-          },
-          error: function(xhr) {
-            $('#mensagemErro').removeClass('d-none');
-            $('#mensagemSucesso').addClass('d-none');
-            
-            if (xhr.responseJSON && xhr.responseJSON.errors) {
-              const erros = xhr.responseJSON.errors.map(e => e.msg).join(', ');
-              $('#erroTexto').text(erros);
-            } else if (xhr.responseJSON && xhr.responseJSON.error) {
-              $('#erroTexto').text(xhr.responseJSON.error);
-            } else {
-              $('#erroTexto').text('Erro ao agendar mensagem. Tente novamente.');
-            }
+        // Solicitar dados do Chatwoot ao carregar a página
+        setTimeout(function() {
+          try {
+            window.parent.postMessage('chatwoot-dashboard-app:fetch-info', '*');
+          } catch (error) {
+            console.error("Erro ao solicitar dados do Chatwoot:", error);
           }
-        });
-      });
+        }, 1000);
+
+        // Envio do formulário
+        const agendamentoForm = document.getElementById('agendamentoForm');
+        if (agendamentoForm) {
+          agendamentoForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Obter a data exatamente como foi selecionada pelo usuário
+            const dataInput = document.getElementById('dataAgendamento').value;
+            const nomeInput = document.getElementById('nome').value;
+            const telefoneInput = document.getElementById('telefone').value;
+            const mensagemInput = document.getElementById('mensagem').value;
+            const responsavelInput = document.getElementById('responsavel').value;
+            
+            const formData = {
+              nome: nomeInput,
+              telefone: telefoneInput,
+              mensagem: mensagemInput,
+              responsavel: responsavelInput,
+              dataAgendamento: dataInput // Enviar exatamente como foi selecionado
+            };
+            
+            console.log('Data selecionada pelo usuário:', dataInput);
+            
+            // Validar telefone
+            const telefoneRegex = /^\(\d{2}\)\s\d{4,5}-\d{4}$/;
+            if (!telefoneRegex.test(formData.telefone)) {
+              const mensagemErro = document.getElementById('mensagemErro');
+              const erroTexto = document.getElementById('erroTexto');
+              
+              if (mensagemErro) mensagemErro.classList.remove('d-none');
+              if (erroTexto) erroTexto.textContent = 'Telefone inválido. Use o formato (99) 99999-9999';
+              return;
+            }
+            
+            // Validar data de agendamento
+            const dataAgendamento = new Date(dataInput);
+            const agoraValidacao = new Date();
+            agoraValidacao.setHours(0, 0, 0, 0); // Zerar horas, minutos, segundos e milissegundos
+            
+            if (dataAgendamento < agoraValidacao) {
+              const mensagemErro = document.getElementById('mensagemErro');
+              const erroTexto = document.getElementById('erroTexto');
+              
+              if (mensagemErro) mensagemErro.classList.remove('d-none');
+              if (erroTexto) erroTexto.textContent = 'A data de agendamento deve ser hoje ou no futuro';
+              return;
+            }
+            
+            // Enviar para a API usando fetch em vez de jQuery
+            fetch('/api/mensagens', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-From-Chatwoot': isFromChatwoot ? 'true' : 'false'
+              },
+              body: JSON.stringify(formData)
+            })
+            .then(response => {
+              if (!response.ok) {
+                throw new Error('Erro ao enviar mensagem');
+              }
+              return response.json();
+            })
+            .then(data => {
+              const mensagemSucesso = document.getElementById('mensagemSucesso');
+              const mensagemErro = document.getElementById('mensagemErro');
+              
+              if (mensagemSucesso) mensagemSucesso.classList.remove('d-none');
+              if (mensagemErro) mensagemErro.classList.add('d-none');
+              
+              // Resetar o formulário
+              agendamentoForm.reset();
+              
+              // Definir data mínima novamente
+              const hoje = new Date();
+              const dataMinima = formatarDataParaInput(hoje);
+              
+              const dataAgendamentoInput = document.getElementById('dataAgendamento');
+              if (dataAgendamentoInput) dataAgendamentoInput.value = dataMinima;
+              
+              // Esconder mensagem de sucesso após 3 segundos
+              setTimeout(() => {
+                if (mensagemSucesso) mensagemSucesso.classList.add('d-none');
+              }, 3000);
+            })
+            .catch(error => {
+              const mensagemErro = document.getElementById('mensagemErro');
+              const erroTexto = document.getElementById('erroTexto');
+              const mensagemSucesso = document.getElementById('mensagemSucesso');
+              
+              if (mensagemErro) mensagemErro.classList.remove('d-none');
+              if (mensagemSucesso) mensagemSucesso.classList.add('d-none');
+              if (erroTexto) erroTexto.textContent = 'Erro ao agendar mensagem. Tente novamente.';
+              
+              console.error('Erro:', error);
+            });
+          });
+        }
+      } catch (error) {
+        console.error("Erro geral na inicialização:", error);
+      }
     });
   </script>
 </body>
