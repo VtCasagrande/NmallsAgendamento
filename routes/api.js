@@ -97,7 +97,7 @@ router.get('/mensagens/:id', async (req, res) => {
 });
 
 // POST - Criar uma nova mensagem
-router.post('/mensagens', autenticarAPI, validacaoMensagem, async (req, res) => {
+router.post('/mensagens', validacaoMensagem, async (req, res) => {
   const errors = validationResult(req);
   
   if (!errors.isEmpty()) {
@@ -121,154 +121,24 @@ router.post('/mensagens', autenticarAPI, validacaoMensagem, async (req, res) => 
       mensagem: req.body.mensagem,
       responsavel: req.body.responsavel,
       dataAgendamento: req.body.dataAgendamento, // Manter como string
-      criadoPor: req.usuario ? req.usuario.id : null,
+      criadoPor: null, // Não temos usuário autenticado
       mensagemEnviada: false // Inicialmente não enviada
     };
 
     console.log('API: Objeto de mensagem criado:', novaMensagem);
     
-    try {
-      // Criar e salvar usando o modelo Mongoose
-      const mensagemModel = new Mensagem(novaMensagem);
-      const mensagemSalva = await mensagemModel.save();
-      
-      console.log('API: Mensagem salva com sucesso no MongoDB:', mensagemSalva._id);
-      console.log('API: Data salva no MongoDB (sem modificação):', mensagemSalva.dataAgendamento);
-      
-      // Registrar log de criação de mensagem
-      const { registrarLog } = require('../utils/logger');
-      
-      if (req.usuario) {
-        // Se tiver usuário autenticado
-        registrarLog(req, 'agendar_mensagem_chatwoot', {
-          mensagemId: mensagemSalva._id,
-          nome: mensagemSalva.nome,
-          telefone: mensagemSalva.telefone,
-          dataAgendamento: mensagemSalva.dataAgendamento,
-          responsavel: mensagemSalva.responsavel
-        });
-      } else if (req.isFromChatwoot) {
-        // Se não tiver usuário mas vier do Chatwoot
-        console.log('API: Mensagem criada via Chatwoot sem usuário autenticado');
-      }
-      
-      // Também salvar localmente para redundância
-      const fs = require('fs');
-      const path = require('path');
-      const { v4: uuidv4 } = require('uuid');
-      
-      // Caminho para o arquivo de mensagens local
-      const mensagensFilePath = path.join(__dirname, '..', 'data', 'mensagens.json');
-      
-      // Função para ler as mensagens do armazenamento local
-      function lerMensagensLocais() {
-        try {
-          if (fs.existsSync(mensagensFilePath)) {
-            const mensagensData = fs.readFileSync(mensagensFilePath, 'utf8');
-            return JSON.parse(mensagensData);
-          }
-        } catch (err) {
-          console.error('Erro ao ler arquivo de mensagens:', err);
-        }
-        return [];
-      }
-      
-      // Função para salvar as mensagens no armazenamento local
-      function salvarMensagensLocais(mensagens) {
-        try {
-          fs.writeFileSync(mensagensFilePath, JSON.stringify(mensagens, null, 2), 'utf8');
-          return true;
-        } catch (err) {
-          console.error('Erro ao salvar arquivo de mensagens:', err);
-          return false;
-        }
-      }
-      
-      const mensagens = lerMensagensLocais();
-      
-      const mensagemLocal = {
-        _id: mensagemSalva._id.toString(),
-        nome: req.body.nome,
-        telefone: req.body.telefone,
-        mensagem: req.body.mensagem,
-        responsavel: req.body.responsavel,
-        dataAgendamento: req.body.dataAgendamento, // Manter como string
-        dataCriacao: new Date(),
-        webhookEnviado: false,
-        criadoPor: req.usuario ? req.usuario.id : null
-      };
-      
-      mensagens.push(mensagemLocal);
-      salvarMensagensLocais(mensagens);
-      console.log('API: Mensagem também salva localmente');
-      
-      res.status(201).json(mensagemSalva);
-    } catch (saveError) {
-      console.error('API: Erro ao salvar no MongoDB:', saveError);
-      
-      // Se falhar ao salvar no MongoDB, salvar apenas localmente
-      const fs = require('fs');
-      const path = require('path');
-      const { v4: uuidv4 } = require('uuid');
-      
-      // Caminho para o arquivo de mensagens local
-      const mensagensFilePath = path.join(__dirname, '..', 'data', 'mensagens.json');
-      
-      // Função para ler as mensagens do armazenamento local
-      function lerMensagensLocais() {
-        try {
-          if (fs.existsSync(mensagensFilePath)) {
-            const mensagensData = fs.readFileSync(mensagensFilePath, 'utf8');
-            return JSON.parse(mensagensData);
-          }
-        } catch (err) {
-          console.error('Erro ao ler arquivo de mensagens:', err);
-        }
-        return [];
-      }
-      
-      // Função para salvar as mensagens no armazenamento local
-      function salvarMensagensLocais(mensagens) {
-        try {
-          fs.writeFileSync(mensagensFilePath, JSON.stringify(mensagens, null, 2), 'utf8');
-          return true;
-        } catch (err) {
-          console.error('Erro ao salvar arquivo de mensagens:', err);
-          return false;
-        }
-      }
-      
-      const mensagens = lerMensagensLocais();
-      
-      const mensagemLocal = {
-        _id: uuidv4(),
-        nome: req.body.nome,
-        telefone: req.body.telefone,
-        mensagem: req.body.mensagem,
-        responsavel: req.body.responsavel,
-        dataAgendamento: req.body.dataAgendamento, // Manter como string
-        dataCriacao: new Date(),
-        webhookEnviado: false,
-        criadoPor: req.usuario ? req.usuario.id : null
-      };
-      
-      mensagens.push(mensagemLocal);
-      salvarMensagensLocais(mensagens);
-      console.log('API: Mensagem salva apenas localmente devido a erro no MongoDB');
-      
-      // Enviar webhook manualmente
-      const enviarWebhook = require('../utils/webhook');
-      await enviarWebhook(mensagemLocal, 'criada');
-      
-      res.status(201).json({
-        _id: mensagemLocal._id,
-        ...mensagemLocal,
-        _local: true
-      });
-    }
-  } catch (err) {
-    console.error('API: Erro geral ao processar mensagem:', err);
-    res.status(500).json({ error: 'Erro ao criar mensagem: ' + err.message });
+    // Salvar a mensagem usando o controlador
+    const mensagemSalva = await salvarMensagem(novaMensagem);
+    
+    console.log('API: Mensagem salva com sucesso:', mensagemSalva._id);
+    
+    res.status(201).json({
+      mensagem: 'Mensagem agendada com sucesso',
+      id: mensagemSalva._id
+    });
+  } catch (error) {
+    console.error('API: Erro ao salvar mensagem:', error);
+    res.status(500).json({ error: 'Erro ao agendar mensagem. Tente novamente.' });
   }
 });
 

@@ -127,9 +127,11 @@ app.use('/', resetRoutes);
 // Rota do Chatwoot (com senha simples, sem autenticação JWT)
 app.use('/chatwoot', chatwootRoutes);
 
+// Rota da API (sem autenticação)
+app.use('/api', apiRoutes);
+
 // Rotas protegidas por autenticação
 app.use('/', autenticar, mensagensRoutes);
-app.use('/api', apiRoutes);
 app.use('/', autenticar, configuracoesRoutes);
 app.use('/admin', adminRoutes);
 
