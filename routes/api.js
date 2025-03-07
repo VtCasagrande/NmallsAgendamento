@@ -3,6 +3,7 @@ const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const Mensagem = require('../models/Mensagem');
 const mongoose = require('mongoose');
+const { salvarMensagem, listarMensagens, obterMensagem, atualizarMensagem, excluirMensagem } = require('../controllers/mensagensController');
 
 // Middleware de validação para a API
 const validacaoMensagem = [
@@ -330,6 +331,116 @@ router.get('/auth/check', (req, res) => {
       role: req.usuario.role
     } : null
   });
+});
+
+// Rota para criar uma nova mensagem (sem autenticação)
+router.post('/mensagens', validacaoMensagem, async (req, res) => {
+  try {
+    // Verificar erros de validação
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    // Processar a data de agendamento
+    const { nome, telefone, mensagem, responsavel, dataAgendamento } = req.body;
+    
+    // Criar a mensagem
+    const novaMensagem = await salvarMensagem({
+      nome,
+      telefone,
+      mensagem,
+      responsavel,
+      dataAgendamento,
+      status: 'agendada',
+      criadoEm: new Date()
+    });
+
+    console.log(`Nova mensagem agendada para ${nome} em ${dataAgendamento}`);
+    
+    res.status(201).json({
+      mensagem: 'Mensagem agendada com sucesso',
+      id: novaMensagem.id
+    });
+  } catch (error) {
+    console.error('Erro ao agendar mensagem:', error);
+    res.status(500).json({ error: 'Erro ao agendar mensagem' });
+  }
+});
+
+// Rota para listar mensagens (sem autenticação)
+router.get('/mensagens', async (req, res) => {
+  try {
+    const mensagens = await listarMensagens();
+    res.json(mensagens);
+  } catch (error) {
+    console.error('Erro ao listar mensagens:', error);
+    res.status(500).json({ error: 'Erro ao listar mensagens' });
+  }
+});
+
+// Rota para obter uma mensagem específica (sem autenticação)
+router.get('/mensagens/:id', async (req, res) => {
+  try {
+    const mensagem = await obterMensagem(req.params.id);
+    if (!mensagem) {
+      return res.status(404).json({ error: 'Mensagem não encontrada' });
+    }
+    res.json(mensagem);
+  } catch (error) {
+    console.error('Erro ao obter mensagem:', error);
+    res.status(500).json({ error: 'Erro ao obter mensagem' });
+  }
+});
+
+// Rota para atualizar uma mensagem (sem autenticação)
+router.put('/mensagens/:id', validacaoMensagem, async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { nome, telefone, mensagem, responsavel, dataAgendamento, status } = req.body;
+    
+    const mensagemAtualizada = await atualizarMensagem(req.params.id, {
+      nome,
+      telefone,
+      mensagem,
+      responsavel,
+      dataAgendamento,
+      status: status || 'agendada',
+      atualizadoEm: new Date()
+    });
+
+    if (!mensagemAtualizada) {
+      return res.status(404).json({ error: 'Mensagem não encontrada' });
+    }
+
+    res.json({
+      mensagem: 'Mensagem atualizada com sucesso',
+      id: req.params.id
+    });
+  } catch (error) {
+    console.error('Erro ao atualizar mensagem:', error);
+    res.status(500).json({ error: 'Erro ao atualizar mensagem' });
+  }
+});
+
+// Rota para excluir uma mensagem (sem autenticação)
+router.delete('/mensagens/:id', async (req, res) => {
+  try {
+    const resultado = await excluirMensagem(req.params.id);
+    
+    if (!resultado) {
+      return res.status(404).json({ error: 'Mensagem não encontrada' });
+    }
+
+    res.json({ mensagem: 'Mensagem excluída com sucesso' });
+  } catch (error) {
+    console.error('Erro ao excluir mensagem:', error);
+    res.status(500).json({ error: 'Erro ao excluir mensagem' });
+  }
 });
 
 module.exports = router; 

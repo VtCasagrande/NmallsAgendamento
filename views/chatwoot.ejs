@@ -187,16 +187,9 @@
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       try {
-        // Verificar se o acesso vem do Chatwoot ou se o usuário está autenticado
+        // Verificar se o acesso vem do Chatwoot
         const isFromChatwoot = <%= isFromChatwoot ? 'true' : 'false' %>;
-        const usuarioAutenticado = <%= usuario ? 'true' : 'false' %>;
         
-        // Se não vier do Chatwoot e não estiver autenticado, redirecionar para login
-        if (!isFromChatwoot && !usuarioAutenticado) {
-          window.location.href = '/login?redirect=/chatwoot';
-          return;
-        }
-
         // Função para formatar a data no formato aceito pelo input date
         function formatarDataParaInput(data) {
           const ano = data.getFullYear();
@@ -240,7 +233,12 @@
             
             let eventData;
             if (typeof event.data === 'string') {
-              eventData = JSON.parse(event.data);
+              try {
+                eventData = JSON.parse(event.data);
+              } catch (e) {
+                // Se não for um JSON válido, ignorar
+                return;
+              }
             } else {
               eventData = event.data;
             }
