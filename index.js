@@ -154,6 +154,10 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Configurar limpeza automática de logs (a cada 24 horas, mantendo logs dos últimos 7 dias)
+const { configurarLimpezaAutomatica } = require('./utils/logger');
+configurarLimpezaAutomatica(7, 24);
+
 // Iniciando o servidor
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);

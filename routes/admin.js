@@ -3,7 +3,7 @@ const router = express.Router();
 const Usuario = require('../models/Usuario');
 const Log = require('../models/Log');
 const { autenticar, verificarAdmin } = require('./auth');
-const { registrarLog } = require('../utils/logger');
+const { registrarLog, limparLogsAntigos, limparTodosLogs } = require('../utils/logger');
 
 // Middleware para todas as rotas de admin
 router.use(autenticar, verificarAdmin);
@@ -174,6 +174,48 @@ router.get('/logs', async (req, res) => {
       title: 'Erro',
       message: 'Erro ao buscar logs: ' + error.message
     });
+  }
+});
+
+// Rota para limpar logs antigos (mais de 7 dias)
+router.post('/logs/limpar-antigos', async (req, res) => {
+  try {
+    const dias = parseInt(req.body.dias) || 7;
+    const logsExcluidos = await limparLogsAntigos(dias);
+    
+    // Registrar log da operação
+    await registrarLog(req, 'limpar_logs', {
+      tipo: 'antigos',
+      dias: dias,
+      quantidade: logsExcluidos
+    });
+    
+    req.flash('success', `${logsExcluidos} logs antigos foram excluídos com sucesso.`);
+    res.redirect('/admin/logs');
+  } catch (error) {
+    console.error('Erro ao limpar logs antigos:', error);
+    req.flash('error', 'Erro ao limpar logs antigos: ' + error.message);
+    res.redirect('/admin/logs');
+  }
+});
+
+// Rota para limpar todos os logs
+router.post('/logs/limpar-todos', async (req, res) => {
+  try {
+    const logsExcluidos = await limparTodosLogs();
+    
+    // Registrar log da operação (este será o único log no sistema)
+    await registrarLog(req, 'limpar_logs', {
+      tipo: 'todos',
+      quantidade: logsExcluidos
+    });
+    
+    req.flash('success', `${logsExcluidos} logs foram excluídos com sucesso.`);
+    res.redirect('/admin/logs');
+  } catch (error) {
+    console.error('Erro ao limpar todos os logs:', error);
+    req.flash('error', 'Erro ao limpar todos os logs: ' + error.message);
+    res.redirect('/admin/logs');
   }
 });
 

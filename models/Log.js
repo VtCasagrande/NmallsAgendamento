@@ -4,7 +4,7 @@ const logSchema = new mongoose.Schema({
   usuario: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Usuario',
-    required: true
+    required: false
   },
   acao: {
     type: String,
@@ -19,7 +19,8 @@ const logSchema = new mongoose.Schema({
       'criar_usuario', 
       'alterar_usuario',
       'acessar_chatwoot',
-      'agendar_mensagem_chatwoot'
+      'agendar_mensagem_chatwoot',
+      'limpar_logs'
     ]
   },
   detalhes: {
