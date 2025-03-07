@@ -1,42 +1,23 @@
 const express = require('express');
 const router = express.Router();
 
-// Rota para a página de login simples do Chatwoot
+// Rota para o dashboard do Chatwoot (sem autenticação e sem senha)
 router.get('/', (req, res) => {
   // Configurar headers para permitir iframe de qualquer origem
   res.header('Content-Security-Policy', "frame-ancestors * 'self'");
   res.header('X-Frame-Options', 'ALLOWALL');
   res.header('Access-Control-Allow-Origin', '*');
   
-  // Verificar se já está autenticado com a senha simples
-  const senhaCorreta = req.query.senha === '147258';
+  // Verificar se a requisição vem do Chatwoot
+  const isFromChatwoot = req.headers['sec-fetch-dest'] === 'iframe' || 
+                         req.headers['referer']?.includes('chat.nmalls.click') ||
+                         req.query.chatwoot_source === 'true';
   
-  if (senhaCorreta) {
-    // Se a senha estiver correta, mostrar a página de agendamento
-    return res.render('chatwoot', { 
-      isFromChatwoot: true,
-      usuario: { nome: 'Usuário Chatwoot' }
-    });
-  } else {
-    // Se não tiver senha ou senha incorreta, mostrar página de senha simples
-    return res.render('senha_simples', {
-      erro: req.query.erro || false
-    });
-  }
-});
-
-// Rota para verificar a senha simples
-router.post('/', (req, res) => {
-  const { senha } = req.body;
-  
-  // Verificar se a senha está correta
-  if (senha === '147258') {
-    // Redirecionar para a página com a senha na query
-    return res.redirect('/chatwoot?senha=147258');
-  } else {
-    // Senha incorreta, mostrar erro
-    return res.redirect('/chatwoot?erro=true');
-  }
+  // Renderizar a página sem verificar autenticação ou senha
+  res.render('chatwoot', { 
+    isFromChatwoot: true,
+    usuario: { nome: 'Usuário Chatwoot' }
+  });
 });
 
 // Rota para o manifesto do Chatwoot
@@ -58,7 +39,7 @@ router.get('/manifest.json', (req, res) => {
     views: [
       {
         name: "Agendar Mensagem",
-        url: "/chatwoot?senha=147258", // Incluir a senha diretamente na URL
+        url: "/chatwoot", // Sem senha na URL
         type: "iframe",
         title: "Agendar Mensagem",
         icon: "calendar",

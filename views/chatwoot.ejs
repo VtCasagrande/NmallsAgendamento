@@ -185,7 +185,6 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   
   <script>
-    // Versão simplificada do script para evitar problemas de iframe
     document.addEventListener('DOMContentLoaded', function() {
       // Inicializar máscara para o campo de telefone
       if (typeof $ !== 'undefined' && $.fn && $.fn.mask) {
@@ -216,6 +215,95 @@
           contador.textContent = this.value.length;
         });
       }
+
+      // Listener para receber dados do Chatwoot
+      function handleChatwootMessage(event) {
+        try {
+          if (!event.data) return;
+          
+          let eventData;
+          if (typeof event.data === 'string') {
+            try {
+              eventData = JSON.parse(event.data);
+            } catch (e) {
+              // Se não for um JSON válido, ignorar
+              return;
+            }
+          } else {
+            eventData = event.data;
+          }
+          
+          if (eventData.event === "appContext") {
+            const conversation = eventData.data.conversation;
+            const contact = eventData.data.contact;
+            const currentAgent = eventData.data.currentAgent;
+            
+            // Preencher informações do contato
+            if (contact) {
+              const contactInfo = document.getElementById('contactInfo');
+              if (contactInfo) contactInfo.classList.remove('d-none');
+              
+              const contactName = document.getElementById('contactName');
+              if (contactName) contactName.textContent = contact.name || '-';
+              
+              const contactPhone = document.getElementById('contactPhone');
+              if (contactPhone) contactPhone.textContent = contact.phone_number || '-';
+              
+              const contactEmail = document.getElementById('contactEmail');
+              if (contactEmail) contactEmail.textContent = contact.email || '-';
+              
+              const contactId = document.getElementById('contactId');
+              if (contactId) contactId.textContent = contact.id || '-';
+              
+              // Preencher automaticamente o formulário
+              const nomeInput = document.getElementById('nome');
+              if (nomeInput && contact.name) nomeInput.value = contact.name;
+              
+              const telefoneInput = document.getElementById('telefone');
+              if (telefoneInput && contact.phone_number) {
+                // Processar o número de telefone corretamente
+                let phone = contact.phone_number.replace(/\D/g, '');
+                
+                // Remover o código do país se já estiver presente
+                if (phone.startsWith('55') && phone.length > 10) {
+                  phone = phone.substring(2);
+                }
+                
+                // Formatar o número no padrão brasileiro
+                if (phone.length >= 10) {
+                  const formattedPhone = phone.length === 11 
+                    ? `(${phone.substring(0, 2)}) ${phone.substring(2, 7)}-${phone.substring(7)}`
+                    : `(${phone.substring(0, 2)}) ${phone.substring(2, 6)}-${phone.substring(6)}`;
+                  telefoneInput.value = formattedPhone;
+                } else {
+                  // Se não conseguir formatar, usar o número original
+                  telefoneInput.value = contact.phone_number;
+                }
+              }
+            }
+            
+            // Preencher o campo de responsável com o nome do agente atual
+            const responsavelInput = document.getElementById('responsavel');
+            if (responsavelInput && currentAgent && currentAgent.name) {
+              responsavelInput.value = currentAgent.name;
+            }
+          }
+        } catch (error) {
+          console.error("Erro ao processar mensagem do Chatwoot:", error);
+        }
+      }
+
+      // Adicionar o listener de mensagens
+      window.addEventListener("message", handleChatwootMessage);
+
+      // Solicitar dados do Chatwoot ao carregar a página
+      setTimeout(function() {
+        try {
+          window.parent.postMessage('chatwoot-dashboard-app:fetch-info', '*');
+        } catch (error) {
+          console.error("Erro ao solicitar dados do Chatwoot:", error);
+        }
+      }, 1000);
 
       // Envio do formulário
       const agendamentoForm = document.getElementById('agendamentoForm');
@@ -267,7 +355,8 @@
           fetch('/api/mensagens', {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json'
+              'Content-Type': 'application/json',
+              'X-From-Chatwoot': 'true'
             },
             body: JSON.stringify(formData)
           })
