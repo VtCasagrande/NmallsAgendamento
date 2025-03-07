@@ -1,27 +1,58 @@
 const express = require('express');
 const router = express.Router();
 const { registrarLog } = require('../utils/logger');
+const jwt = require('jsonwebtoken');
 
-// Rota para o Chatwoot Dashboard App - Sem autenticação obrigatória
-router.get('/chatwoot', (req, res) => {
-  // Verificar se a requisição vem do Chatwoot (através do referer ou outros headers)
+// Middleware para autenticação específica do Chatwoot
+const autenticarChatwoot = (req, res, next) => {
+  // Verificar se a requisição vem do Chatwoot
   const referer = req.headers.referer || '';
   const isFromChatwoot = referer.includes('chat.nmalls.click') || 
                          req.headers['x-from-chatwoot'] || 
                          req.query.chatwoot_source === 'true';
   
+  // Se vier do Chatwoot, permitir acesso sem autenticação
+  if (isFromChatwoot) {
+    req.isFromChatwoot = true;
+    return next();
+  }
+  
+  // Verificar se existe um token no cookie
+  const token = req.cookies.token;
+  
+  if (!token) {
+    return res.redirect('/login?redirect=/chatwoot');
+  }
+  
+  try {
+    // Verificar o token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'segredo_temporario');
+    req.usuario = decoded;
+    res.locals.usuario = decoded; // Disponibilizar o usuário para as views
+    next();
+  } catch (error) {
+    res.clearCookie('token');
+    return res.redirect('/login?redirect=/chatwoot');
+  }
+};
+
+// Rota para o Chatwoot Dashboard App - Com autenticação específica
+router.get('/chatwoot', autenticarChatwoot, (req, res) => {
   // Se o usuário estiver autenticado, registrar o log
   if (req.usuario) {
     registrarLog(req, 'acessar_chatwoot', { 
       usuario: req.usuario.nome,
       role: req.usuario.role,
-      referer: referer
+      referer: req.headers.referer || ''
     });
+  } else if (req.isFromChatwoot) {
+    console.log('Acesso ao Chatwoot via iframe sem autenticação');
   }
   
   // Renderizar a página com informação sobre a origem
   res.render('chatwoot', { 
-    isFromChatwoot: isFromChatwoot 
+    isFromChatwoot: req.isFromChatwoot || false,
+    usuario: req.usuario || null
   });
 });
 

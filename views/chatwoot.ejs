@@ -186,31 +186,14 @@
   
   <script>
     $(document).ready(function() {
-      // Verificar se o acesso vem do Chatwoot
+      // Verificar se o acesso vem do Chatwoot ou se o usuário está autenticado
       const isFromChatwoot = <%= isFromChatwoot ? 'true' : 'false' %>;
+      const usuarioAutenticado = <%= usuario ? 'true' : 'false' %>;
       
-      // Verificar se o usuário está autenticado apenas se não vier do Chatwoot
-      const checkAuth = function() {
-        if (!isFromChatwoot) {
-          $.ajax({
-            url: '/api/auth/check',
-            type: 'GET',
-            success: function(response) {
-              if (!response.autenticado) {
-                // Redirecionar para a página de login
-                window.location.href = '/login?redirect=/chatwoot';
-              }
-            },
-            error: function() {
-              // Em caso de erro, também redirecionar para o login
-              window.location.href = '/login?redirect=/chatwoot';
-            }
-          });
-        }
-      };
-      
-      // Executar a verificação de autenticação
-      checkAuth();
+      // Se não vier do Chatwoot e não estiver autenticado, redirecionar para login
+      if (!isFromChatwoot && !usuarioAutenticado) {
+        window.location.href = '/login?redirect=/chatwoot';
+      }
 
       // Função para formatar a data no formato aceito pelo input date
       function formatarDataParaInput(data) {

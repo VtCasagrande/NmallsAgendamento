@@ -38,6 +38,38 @@ const validacaoMensagem = [
     })
 ];
 
+// Middleware para autenticação específica da API
+const autenticarAPI = (req, res, next) => {
+  // Verificar se a requisição vem do Chatwoot
+  const referer = req.headers.referer || '';
+  const isFromChatwoot = referer.includes('chat.nmalls.click') || 
+                         req.headers['x-from-chatwoot'] || 
+                         req.query.chatwoot_source === 'true';
+  
+  // Se vier do Chatwoot, permitir acesso sem autenticação
+  if (isFromChatwoot) {
+    req.isFromChatwoot = true;
+    return next();
+  }
+  
+  // Verificar se existe um token no cookie
+  const token = req.cookies.token;
+  
+  if (!token) {
+    return res.status(401).json({ error: 'Não autenticado' });
+  }
+  
+  try {
+    // Verificar o token
+    const jwt = require('jsonwebtoken');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'segredo_temporario');
+    req.usuario = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ error: 'Token inválido' });
+  }
+};
+
 // GET - Listar todas as mensagens
 router.get('/mensagens', async (req, res) => {
   try {
@@ -64,7 +96,7 @@ router.get('/mensagens/:id', async (req, res) => {
 });
 
 // POST - Criar uma nova mensagem
-router.post('/mensagens', validacaoMensagem, async (req, res) => {
+router.post('/mensagens', autenticarAPI, validacaoMensagem, async (req, res) => {
   const errors = validationResult(req);
   
   if (!errors.isEmpty()) {
@@ -73,12 +105,6 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
 
   try {
     console.log('API: Recebendo nova mensagem:', req.body);
-    
-    // Verificar se a requisição vem do Chatwoot
-    const referer = req.headers.referer || '';
-    const isFromChatwoot = referer.includes('chat.nmalls.click') || 
-                           req.headers['x-from-chatwoot'] || 
-                           req.query.chatwoot_source === 'true';
     
     // Verificar conexão com o MongoDB
     const isConnected = mongoose.connection.readyState === 1;
@@ -94,7 +120,8 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
       mensagem: req.body.mensagem,
       responsavel: req.body.responsavel,
       dataAgendamento: req.body.dataAgendamento, // Manter como string
-      criadoPor: req.usuario ? req.usuario.id : null
+      criadoPor: req.usuario ? req.usuario.id : null,
+      mensagemEnviada: false // Inicialmente não enviada
     };
 
     console.log('API: Objeto de mensagem criado:', novaMensagem);
@@ -107,19 +134,20 @@ router.post('/mensagens', validacaoMensagem, async (req, res) => {
       console.log('API: Mensagem salva com sucesso no MongoDB:', mensagemSalva._id);
       console.log('API: Data salva no MongoDB (sem modificação):', mensagemSalva.dataAgendamento);
       
-      // Registrar log de criação de mensagem via Chatwoot
+      // Registrar log de criação de mensagem
+      const { registrarLog } = require('../utils/logger');
+      
       if (req.usuario) {
-        const { registrarLog } = require('../utils/logger');
+        // Se tiver usuário autenticado
         registrarLog(req, 'agendar_mensagem_chatwoot', {
           mensagemId: mensagemSalva._id,
           nome: mensagemSalva.nome,
           telefone: mensagemSalva.telefone,
           dataAgendamento: mensagemSalva.dataAgendamento,
-          responsavel: mensagemSalva.responsavel,
-          isFromChatwoot: isFromChatwoot
+          responsavel: mensagemSalva.responsavel
         });
-      } else if (isFromChatwoot) {
-        // Se não tiver usuário mas vier do Chatwoot, registrar log sem usuário
+      } else if (req.isFromChatwoot) {
+        // Se não tiver usuário mas vier do Chatwoot
         console.log('API: Mensagem criada via Chatwoot sem usuário autenticado');
       }
       
