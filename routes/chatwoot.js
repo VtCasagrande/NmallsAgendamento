@@ -3,10 +3,6 @@ const router = express.Router();
 
 // Rota para o dashboard do Chatwoot (sem autenticação)
 router.get('/', (req, res) => {
-  // Verificar se a requisição vem do Chatwoot
-  const isFromChatwoot = req.headers['sec-fetch-dest'] === 'iframe' || 
-                         req.headers['referer']?.includes('chat.nmalls.click');
-  
   // Configurar headers para permitir iframe de qualquer origem
   res.header('Content-Security-Policy', "frame-ancestors * 'self'");
   res.header('X-Frame-Options', 'ALLOWALL');
@@ -14,8 +10,8 @@ router.get('/', (req, res) => {
   
   // Renderizar a página sem verificar autenticação
   res.render('chatwoot', { 
-    isFromChatwoot: true, // Sempre considerar como vindo do Chatwoot para simplificar
-    usuario: null // Não precisamos mais de usuário autenticado
+    isFromChatwoot: true,
+    usuario: { nome: 'Usuário Chatwoot' } // Criar um usuário fictício para evitar erros
   });
 });
 
@@ -33,7 +29,7 @@ router.get('/manifest.json', (req, res) => {
     icon: `${baseUrl}/img/icon.png`,
     version: "1.0.0",
     allow_actions: false,
-    allowed_origins: ["*"], // Permitir qualquer origem
+    allowed_origins: ["*"],
     settings: [],
     views: [
       {

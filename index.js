@@ -165,6 +165,8 @@ app.use('/', autenticar, mensagensRoutes);
 app.use('/api', apiRoutes);
 app.use('/', autenticar, configuracoesRoutes);
 app.use('/admin', adminRoutes);
+
+// Rota do Chatwoot (sem autenticação)
 app.use('/chatwoot', chatwootRoutes);
 
 // Rota para página inicial (redirecionamento)
