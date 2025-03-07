@@ -124,50 +124,14 @@ app.use('/', authRoutes);
 // Rota de reset do sistema (não protegida)
 app.use('/', resetRoutes);
 
-// Rota para criar o usuário administrador inicial
-app.get('/setup-admin', async (req, res) => {
-  try {
-    const Usuario = require('./models/Usuario');
-    // Verificar se já existe algum usuário
-    const usuariosCount = await Usuario.countDocuments();
-    
-    if (usuariosCount > 0) {
-      return res.status(403).json({ 
-        error: 'Configuração inicial já foi realizada. Não é possível criar outro administrador por esta rota.' 
-      });
-    }
-    
-    // Criar o usuário administrador
-    const adminUser = new Usuario({
-      nome: 'Administrador',
-      email: 'vitor@nmalls.com.br',
-      senha: 'admin123',
-      role: 'admin'
-    });
-    
-    await adminUser.save();
-    
-    res.json({ 
-      success: true, 
-      message: 'Usuário administrador criado com sucesso. Você pode fazer login agora.' 
-    });
-    
-  } catch (error) {
-    console.error('Erro ao criar usuário administrador:', error);
-    res.status(500).json({ 
-      error: 'Ocorreu um erro ao criar o usuário administrador.' 
-    });
-  }
-});
+// Rota do Chatwoot (com senha simples, sem autenticação JWT)
+app.use('/chatwoot', chatwootRoutes);
 
 // Rotas protegidas por autenticação
 app.use('/', autenticar, mensagensRoutes);
 app.use('/api', apiRoutes);
 app.use('/', autenticar, configuracoesRoutes);
 app.use('/admin', adminRoutes);
-
-// Rota do Chatwoot (sem autenticação)
-app.use('/chatwoot', chatwootRoutes);
 
 // Rota para página inicial (redirecionamento)
 app.get('/', (req, res) => {
