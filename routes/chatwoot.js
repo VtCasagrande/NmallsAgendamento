@@ -7,13 +7,14 @@ router.get('/', (req, res) => {
   const isFromChatwoot = req.headers['sec-fetch-dest'] === 'iframe' || 
                          req.headers['referer']?.includes('chat.nmalls.click');
   
-  // Configurar headers para permitir iframe
-  res.header('Content-Security-Policy', "frame-ancestors 'self' https://chat.nmalls.click");
-  res.header('X-Frame-Options', 'ALLOW-FROM https://chat.nmalls.click');
+  // Configurar headers para permitir iframe de qualquer origem
+  res.header('Content-Security-Policy', "frame-ancestors * 'self'");
+  res.header('X-Frame-Options', 'ALLOWALL');
+  res.header('Access-Control-Allow-Origin', '*');
   
   // Renderizar a página sem verificar autenticação
   res.render('chatwoot', { 
-    isFromChatwoot: isFromChatwoot,
+    isFromChatwoot: true, // Sempre considerar como vindo do Chatwoot para simplificar
     usuario: null // Não precisamos mais de usuário autenticado
   });
 });
@@ -32,7 +33,7 @@ router.get('/manifest.json', (req, res) => {
     icon: `${baseUrl}/img/icon.png`,
     version: "1.0.0",
     allow_actions: false,
-    allowed_origins: ["https://chat.nmalls.click"],
+    allowed_origins: ["*"], // Permitir qualquer origem
     settings: [],
     views: [
       {

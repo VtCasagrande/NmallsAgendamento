@@ -84,20 +84,14 @@ app.use((req, res, next) => {
 
 // Middleware para CORS
 app.use((req, res, next) => {
+  // Permitir acesso de qualquer origem
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-From-Chatwoot');
   
-  // Configurar cabeçalhos de segurança para o iframe do Chatwoot
-  if (req.path === '/chatwoot' || req.path.startsWith('/chatwoot/')) {
-    // Permitir que o iframe seja carregado a partir do domínio do Chatwoot
-    res.header('Content-Security-Policy', "frame-ancestors 'self' https://chat.nmalls.click");
-    res.header('X-Frame-Options', 'ALLOW-FROM https://chat.nmalls.click');
-  } else {
-    // Para outras rotas, restringir o framing para a mesma origem
-    res.header('Content-Security-Policy', "frame-ancestors 'self'");
-    res.header('X-Frame-Options', 'SAMEORIGIN');
-  }
+  // Configurar cabeçalhos de segurança para permitir iframe de qualquer origem
+  res.header('Content-Security-Policy', "frame-ancestors * 'self'");
+  res.header('X-Frame-Options', 'ALLOWALL');
   
   // Permitir requisições preflight
   if (req.method === 'OPTIONS') {
